@@ -312,7 +312,10 @@ export default function Shifts() {
       const basePay = baseHours * profile.base_hourly_rate;
       const eveningExtra = eveningHours * profile.evening_extra;
       const weekendExtra = weekendHours * profile.weekend_extra;
-      const sundayExtra = sundayHours * profile.base_hourly_rate;
+      const sundayExtra =
+        sundayHours >= 8
+          ? (sundayHours - 0.5) * profile.base_hourly_rate
+          : sundayHours * profile.base_hourly_rate;
       const totalPay = basePay + eveningExtra + weekendExtra + sundayExtra;
 
       // Update shift calculations
