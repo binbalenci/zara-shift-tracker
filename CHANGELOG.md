@@ -77,3 +77,17 @@
   - Salary Profile management
   - Supabase integration
   - React Native Paper components
+
+## 1.3.3 - 2024-04-08
+
+### Changed
+
+- Improved tab navigation layout:
+  - Fixed tab bar positioning across all devices
+  - Adjusted spacing for tab icons and labels
+  - Better handling of safe areas and device-specific insets
+
+### Fixed
+
+- Tab bar text visibility on devices with home indicator
+- Navigation layout issues on iPhone models with Dynamic Island
