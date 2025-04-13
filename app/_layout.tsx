@@ -1,6 +1,6 @@
-import { Tabs } from "expo-router";
-import { MaterialIcons } from "@expo/vector-icons";
-import { Image, View } from "react-native";
+import { Stack } from "expo-router";
+import { View } from "react-native";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import Toast, { BaseToast, ErrorToast, BaseToastProps } from "react-native-toast-message";
 import { SalaryProfileProvider } from "./contexts/SalaryProfileContext";
 import { PaperProvider } from "react-native-paper";
@@ -46,50 +46,15 @@ const toastConfig = {
 
 export default function RootLayout() {
   return (
-    <PaperProvider>
-      <SalaryProfileProvider>
-        <View style={{ flex: 1 }}>
-          <Tabs>
-            <Tabs.Screen
-              name="index"
-              options={{
-                title: "Home",
-                tabBarIcon: ({ color, size }: { color: string; size: number }) => (
-                  <MaterialIcons name="home" size={size} color={color} />
-                ),
-              }}
-            />
-            <Tabs.Screen
-              name="shifts"
-              options={{
-                title: "Shifts",
-                tabBarIcon: ({ color, size }: { color: string; size: number }) => (
-                  <MaterialIcons name="list" size={size} color={color} />
-                ),
-              }}
-            />
-            <Tabs.Screen
-              name="statistics"
-              options={{
-                title: "Statistics",
-                tabBarIcon: ({ color, size }: { color: string; size: number }) => (
-                  <MaterialIcons name="bar-chart" size={size} color={color} />
-                ),
-              }}
-            />
-            <Tabs.Screen
-              name="settings"
-              options={{
-                title: "Settings",
-                tabBarIcon: ({ color, size }: { color: string; size: number }) => (
-                  <MaterialIcons name="settings" size={size} color={color} />
-                ),
-              }}
-            />
-          </Tabs>
-          <Toast config={toastConfig} />
-        </View>
-      </SalaryProfileProvider>
-    </PaperProvider>
+    <SafeAreaProvider>
+      <PaperProvider>
+        <SalaryProfileProvider>
+          <SafeAreaView style={{ flex: 1 }}>
+            <Stack screenOptions={{ headerShown: false }} />
+            <Toast config={toastConfig} />
+          </SafeAreaView>
+        </SalaryProfileProvider>
+      </PaperProvider>
+    </SafeAreaProvider>
   );
 }
