@@ -51,7 +51,7 @@ export default function RootLayout() {
         <View style={{ flex: 1 }}>
           <Tabs>
             <Tabs.Screen
-              name="(tabs)/index"
+              name="index"
               options={{
                 title: "Home",
                 tabBarIcon: ({ color, size }: { color: string; size: number }) => (
@@ -60,7 +60,7 @@ export default function RootLayout() {
               }}
             />
             <Tabs.Screen
-              name="(tabs)/shifts"
+              name="shifts"
               options={{
                 title: "Shifts",
                 tabBarIcon: ({ color, size }: { color: string; size: number }) => (
@@ -69,7 +69,7 @@ export default function RootLayout() {
               }}
             />
             <Tabs.Screen
-              name="(tabs)/statistics"
+              name="statistics"
               options={{
                 title: "Statistics",
                 tabBarIcon: ({ color, size }: { color: string; size: number }) => (
@@ -78,7 +78,7 @@ export default function RootLayout() {
               }}
             />
             <Tabs.Screen
-              name="(tabs)/settings"
+              name="settings"
               options={{
                 title: "Settings",
                 tabBarIcon: ({ color, size }: { color: string; size: number }) => (
