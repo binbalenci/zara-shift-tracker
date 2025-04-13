@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "zara-shift-tracker",
+    "name": "Zara Shift Tracker",
     "slug": "zara-shift-tracker",
-    "version": "1.3.3",
+    "version": "1.3.4",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "zara-shift-tracker",

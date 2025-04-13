@@ -91,3 +91,9 @@
 
 - Tab bar text visibility on devices with home indicator
 - Navigation layout issues on iPhone models with Dynamic Island
+
+## [1.3.4] - 2024-03-26
+
+### Fixed
+
+- Fixed shift calculation to properly apply 0.5-hour deduction to Sunday hours for shifts 8 hours or longer
