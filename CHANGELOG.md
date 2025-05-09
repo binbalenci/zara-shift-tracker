@@ -97,3 +97,14 @@
 ### Fixed
 
 - Fixed shift calculation to properly apply 0.5-hour deduction to Sunday hours for shifts 8 hours or longer
+
+## [1.3.5] - 2024-04-30
+
+### Changed
+
+- Updated to Expo SDK 53:
+  - Upgraded React Native to 0.79
+  - Upgraded React to 19
+  - Enabled New Architecture by default
+  - Added Metro configuration for Supabase compatibility
+  - Updated runtime version to match app version
