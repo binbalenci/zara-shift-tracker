@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.3.6] - 2024-05-09
+
+### Fixed
+
+- Fixed app configuration schema for Expo 53 compatibility
+- Fixed dependency version conflicts by aligning React and React Native packages
+- Improved project health by updating all Expo packages to their compatible versions
+- Added configuration to suppress warnings about third-party packages
+
 ## 1.3.1 - 2024-04-08
 
 ### Changed
