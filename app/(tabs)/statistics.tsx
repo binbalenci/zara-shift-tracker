@@ -107,6 +107,8 @@ interface MonthlyStats {
   holidayEarnings: number;
   totalEarnings: number;
   totalHours: number;
+  holidayShifts: { count: number; days: number[] };
+  sickLeaveShifts: { count: number; days: number[] };
 }
 
 interface ChartData {
@@ -129,6 +131,8 @@ export default function Statistics() {
     holidayEarnings: 0,
     totalEarnings: 0,
     totalHours: 0,
+    holidayShifts: { count: 0, days: [] },
+    sickLeaveShifts: { count: 0, days: [] },
   });
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [maxChartValue, setMaxChartValue] = useState(2000);
@@ -207,6 +211,8 @@ export default function Statistics() {
           date,
           start_time,
           end_time,
+          sick_leave,
+          public_holiday,
           shift_calculations (
             id,
             shift_id,
@@ -248,10 +254,23 @@ export default function Statistics() {
       let totalEarnings = 0;
       let totalHours = 0;
 
+      // Track holiday and sick leave shifts
+      const holidayShiftDays: number[] = [];
+      const sickLeaveShiftDays: number[] = [];
+
       shifts?.forEach((shift) => {
         // Count shifts per day
         const dayName = new Date(shift.date).toLocaleDateString("en-US", { weekday: "long" });
         dayBreakdown[dayName]++;
+
+        // Track holiday and sick leave shifts
+        const dayNumber = new Date(shift.date).getDate();
+        if (shift.public_holiday) {
+          holidayShiftDays.push(dayNumber);
+        }
+        if (shift.sick_leave) {
+          sickLeaveShiftDays.push(dayNumber);
+        }
 
         // Sum up earnings from shift_calculations
         if (shift.shift_calculations && shift.shift_calculations.length > 0) {
@@ -266,6 +285,10 @@ export default function Statistics() {
         }
       });
 
+      // Sort the day arrays
+      holidayShiftDays.sort((a, b) => a - b);
+      sickLeaveShiftDays.sort((a, b) => a - b);
+
       setMonthlyStats({
         totalShifts: shifts?.length || 0,
         dayBreakdown,
@@ -276,6 +299,8 @@ export default function Statistics() {
         holidayEarnings,
         totalEarnings,
         totalHours,
+        holidayShifts: { count: holidayShiftDays.length, days: holidayShiftDays },
+        sickLeaveShifts: { count: sickLeaveShiftDays.length, days: sickLeaveShiftDays },
       });
     } catch (error) {
       console.error("Error fetching monthly stats:", error);
@@ -544,6 +569,24 @@ export default function Statistics() {
                   {monthlyStats.totalHours.toFixed(1)}
                 </Text>
               </View>
+              {monthlyStats.holidayShifts.count > 0 && (
+                <View style={styles.statRow}>
+                  <Text style={[styles.label, { color: "#666" }]}>Holiday Shifts</Text>
+                  <Text style={[styles.value, { color: "#333" }]}>
+                    {monthlyStats.holidayShifts.count} ({monthlyStats.holidayShifts.days.join(", ")}
+                    )
+                  </Text>
+                </View>
+              )}
+              {monthlyStats.sickLeaveShifts.count > 0 && (
+                <View style={styles.statRow}>
+                  <Text style={[styles.label, { color: "#666" }]}>Sick Leave</Text>
+                  <Text style={[styles.value, { color: "#333" }]}>
+                    {monthlyStats.sickLeaveShifts.count} (
+                    {monthlyStats.sickLeaveShifts.days.join(", ")})
+                  </Text>
+                </View>
+              )}
             </Card.Content>
           </Card>
 
