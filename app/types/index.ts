@@ -26,8 +26,9 @@ export interface ShiftCalculation {
   base_pay: number;                // paid_hours × base_rate (covers ALL hours)
   weekday_evening_bonus: number;   // weekday_evening_hours × €4.18 (just extra)
   saturday_evening_bonus: number;  // saturday_evening_hours × €5.46 (just extra)
-  sunday_bonus: number;            // sunday_hours × sunday_extra_rate (just extra)  
-  total_pay: number;               // base_pay + weekday_evening_bonus + saturday_evening_bonus + sunday_bonus
+  sunday_bonus: number;            // sunday_hours × sunday_extra_rate (just extra)
+  holiday_bonus: number;           // paid_hours × base_rate for public holidays (100% bonus)
+  total_pay: number;               // base_pay + weekday_evening_bonus + saturday_evening_bonus + sunday_bonus + holiday_bonus
   created_at: string;
   updated_at: string;
 }
@@ -39,6 +40,7 @@ export interface Shift {
   end_time: string;
   salary_profile_id: string;
   sick_leave: boolean;
+  public_holiday: boolean;
 }
 
 export type RootStackParamList = {

@@ -104,6 +104,7 @@ interface MonthlyStats {
   weekdayEveningEarnings: number;
   saturdayEveningEarnings: number;
   sundayEarnings: number;
+  holidayEarnings: number;
   totalEarnings: number;
   totalHours: number;
 }
@@ -125,6 +126,7 @@ export default function Statistics() {
     weekdayEveningEarnings: 0,
     saturdayEveningEarnings: 0,
     sundayEarnings: 0,
+    holidayEarnings: 0,
     totalEarnings: 0,
     totalHours: 0,
   });
@@ -212,6 +214,7 @@ export default function Statistics() {
             weekday_evening_bonus,
             saturday_evening_bonus,
             sunday_bonus,
+            holiday_bonus,
             total_pay,
             total_hours
           )
@@ -241,6 +244,7 @@ export default function Statistics() {
       let weekdayEveningEarnings = 0;
       let saturdayEveningEarnings = 0;
       let sundayEarnings = 0;
+      let holidayEarnings = 0;
       let totalEarnings = 0;
       let totalHours = 0;
 
@@ -256,6 +260,7 @@ export default function Statistics() {
           weekdayEveningEarnings += calc.weekday_evening_bonus || 0;
           saturdayEveningEarnings += calc.saturday_evening_bonus || 0;
           sundayEarnings += calc.sunday_bonus || 0;
+          holidayEarnings += calc.holiday_bonus || 0;
           totalEarnings += calc.total_pay || 0;
           totalHours += calc.total_hours || 0;
         }
@@ -268,6 +273,7 @@ export default function Statistics() {
         weekdayEveningEarnings,
         saturdayEveningEarnings,
         sundayEarnings,
+        holidayEarnings,
         totalEarnings,
         totalHours,
       });
@@ -580,6 +586,12 @@ export default function Statistics() {
                 <Text style={[styles.label, { color: "#666" }]}>Sunday Bonus</Text>
                 <Text style={[styles.value, { color: "#333" }]}>
                   €{monthlyStats.sundayEarnings.toFixed(2)}
+                </Text>
+              </View>
+              <View style={styles.statRow}>
+                <Text style={[styles.label, { color: "#666" }]}>Holiday Bonus</Text>
+                <Text style={[styles.value, { color: "#333" }]}>
+                  €{monthlyStats.holidayEarnings.toFixed(2)}
                 </Text>
               </View>
               <View style={styles.totalRow}>

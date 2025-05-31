@@ -326,7 +326,9 @@ export default function Home() {
       const weekdayEveningBonus = weekdayEveningHours * 4.18; // €4.18/hr weekday evening bonus
       const saturdayEveningBonus = saturdayEveningHours * 5.46; // €5.46/hr Saturday evening bonus
       const sundayBonus = sundayHours * profile.sunday_extra; // Sunday bonus rate
-      const totalPay = basePay + weekdayEveningBonus + saturdayEveningBonus + sundayBonus;
+      const holidayBonus = 0; // No holiday bonus during initial creation
+      const totalPay =
+        basePay + weekdayEveningBonus + saturdayEveningBonus + sundayBonus + holidayBonus;
 
       // Create shift calculation record with new split evening fields
       const { error: calcError } = await supabase.from("shift_calculations").insert({
@@ -342,6 +344,7 @@ export default function Home() {
         weekday_evening_bonus: weekdayEveningBonus,
         saturday_evening_bonus: saturdayEveningBonus,
         sunday_bonus: sundayBonus,
+        holiday_bonus: holidayBonus,
         total_pay: totalPay,
       });
 

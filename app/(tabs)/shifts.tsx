@@ -189,6 +189,7 @@ export default function Shifts() {
   const [editStartTime, setEditStartTime] = useState<Date | undefined>();
   const [editEndTime, setEditEndTime] = useState<Date | undefined>();
   const [editSickLeave, setEditSickLeave] = useState<boolean>(false);
+  const [editPublicHoliday, setEditPublicHoliday] = useState<boolean>(false);
 
   const fetchShifts = async () => {
     try {
@@ -245,7 +246,7 @@ export default function Shifts() {
         return;
       }
 
-      // Update the shift with sick leave status
+      // Update the shift with sick leave and public holiday status
       const { error: shiftError } = await supabase
         .from("shifts")
         .update({
@@ -267,6 +268,7 @@ export default function Shifts() {
             })
             .replace(".", ":"),
           sick_leave: editSickLeave,
+          public_holiday: editPublicHoliday,
         })
         .eq("id", selectedShift.id);
 
@@ -305,8 +307,8 @@ export default function Shifts() {
       let weekdayEveningHours = 0;
       let saturdayEveningHours = 0;
 
-      // For sick leave, no evening hours are counted for bonuses
-      if (!editSickLeave && !isSunday(shiftStart)) {
+      // For sick leave or public holiday, no evening hours are counted for bonuses
+      if (!editSickLeave && !editPublicHoliday && !isSunday(shiftStart)) {
         if (isSaturday(shiftStart)) {
           // Saturday: evening rate starts at 13:00
           if (shiftEnd > weekendStart && shiftStart < shiftEnd) {
@@ -324,15 +326,31 @@ export default function Shifts() {
         }
       }
 
-      // Calculate Sunday hours (all paid hours if Sunday and not sick leave, 0 otherwise)
-      const sundayHours = !editSickLeave && isSunday(shiftStart) ? paidHours : 0;
+      // Calculate Sunday hours (all paid hours if Sunday and not sick leave or public holiday, 0 otherwise)
+      const sundayHours =
+        !editSickLeave && !editPublicHoliday && isSunday(shiftStart) ? paidHours : 0;
 
       // APPROACH 2: Base pay covers ALL paid hours, bonuses are just additional amounts
+      // Sick leave takes precedence - if sick, no bonuses at all
       const basePay = paidHours * profile.base_hourly_rate; // ALL hours at base rate
-      const weekdayEveningBonus = editSickLeave ? 0 : weekdayEveningHours * 4.18; // No bonus for sick leave
-      const saturdayEveningBonus = editSickLeave ? 0 : saturdayEveningHours * 5.46; // No bonus for sick leave
-      const sundayBonus = editSickLeave ? 0 : sundayHours * profile.sunday_extra; // No bonus for sick leave
-      const totalPay = basePay + weekdayEveningBonus + saturdayEveningBonus + sundayBonus;
+      const weekdayEveningBonus = editSickLeave
+        ? 0
+        : editPublicHoliday
+        ? 0
+        : weekdayEveningHours * 4.18;
+      const saturdayEveningBonus = editSickLeave
+        ? 0
+        : editPublicHoliday
+        ? 0
+        : saturdayEveningHours * 5.46;
+      const sundayBonus = editSickLeave
+        ? 0
+        : editPublicHoliday
+        ? 0
+        : sundayHours * profile.sunday_extra;
+      const holidayBonus = editSickLeave ? 0 : editPublicHoliday ? basePay : 0; // Sick leave overrides holiday bonus
+      const totalPay =
+        basePay + weekdayEveningBonus + saturdayEveningBonus + sundayBonus + holidayBonus;
 
       // Update shift calculation with new split evening fields
       const { error: calcError } = await supabase
@@ -348,6 +366,7 @@ export default function Shifts() {
           weekday_evening_bonus: weekdayEveningBonus,
           saturday_evening_bonus: saturdayEveningBonus,
           sunday_bonus: sundayBonus,
+          holiday_bonus: holidayBonus,
           total_pay: totalPay,
         })
         .eq("shift_id", selectedShift.id);
@@ -402,6 +421,7 @@ export default function Shifts() {
     setEditStartTime(new Date(`2000-01-01T${shift.start_time}`));
     setEditEndTime(new Date(`2000-01-01T${shift.end_time}`));
     setEditSickLeave(shift.sick_leave || false);
+    setEditPublicHoliday(shift.public_holiday || false);
     setShowModifyModal(true);
   };
 
@@ -429,13 +449,26 @@ export default function Shifts() {
   const renderShift = ({ item }: { item: Shift }) => {
     const calculation = shiftCalculations[item.id];
     const isSickLeave = item.sick_leave || false;
+    const isPublicHoliday = item.public_holiday || false;
+
+    // Determine background color and badge - sick leave takes precedence
+    let backgroundColor = "white"; // Normal
+    let badgeColor = "";
+    let badgeText = "";
+
+    if (isSickLeave) {
+      backgroundColor = "#FFEBEE"; // Light red for sick leave
+      badgeColor = "#D32F2F";
+      badgeText = "SICK";
+    } else if (isPublicHoliday) {
+      backgroundColor = "#FFF8E1"; // Light amber for holidays
+      badgeColor = "#FF9800";
+      badgeText = "HOLIDAY";
+    }
 
     return (
       <TouchableOpacity
-        style={[
-          styles.shiftBox,
-          isSickLeave && { backgroundColor: "#FFF8E1" }, // Light amber for sick leave
-        ]}
+        style={[styles.shiftBox, { backgroundColor }]}
         onPress={() => {
           setSelectedShift(item);
           setShowBreakdownModal(true);
@@ -444,17 +477,19 @@ export default function Shifts() {
         <View style={styles.shiftInfo}>
           <View style={{ flexDirection: "row", alignItems: "center" }}>
             <Text style={styles.shiftTime}>{formatDate(item.date)}</Text>
-            {isSickLeave && (
+            {(isSickLeave || isPublicHoliday) && (
               <View
                 style={{
-                  backgroundColor: "#FF9800",
+                  backgroundColor: badgeColor,
                   paddingHorizontal: 6,
                   paddingVertical: 2,
                   borderRadius: 4,
                   marginLeft: 8,
                 }}
               >
-                <Text style={{ color: "white", fontSize: 10, fontWeight: "bold" }}>SICK</Text>
+                <Text style={{ color: "white", fontSize: 10, fontWeight: "bold" }}>
+                  {badgeText}
+                </Text>
               </View>
             )}
           </View>
@@ -615,6 +650,24 @@ export default function Shifts() {
               />
             </TouchableOpacity>
 
+            {/* Public Holiday Row */}
+            <TouchableOpacity
+              style={styles.row}
+              onPress={() => setEditPublicHoliday(!editPublicHoliday)}
+            >
+              <View style={styles.rowLabel}>
+                <Text style={styles.labelText}>Public Holiday</Text>
+                <Text style={styles.valueText}>
+                  {editPublicHoliday ? "Double pay (100% bonus)" : "Normal calculation"}
+                </Text>
+              </View>
+              <MaterialIcons
+                name={editPublicHoliday ? "check-box" : "check-box-outline-blank"}
+                size={24}
+                color={editPublicHoliday ? "#D32F2F" : "#666"}
+              />
+            </TouchableOpacity>
+
             <View style={styles.modalButtons}>
               <TouchableOpacity
                 style={styles.cancelButton}
@@ -741,11 +794,17 @@ export default function Shifts() {
                 </View>
                 {selectedShift.sick_leave && (
                   <View style={styles.breakdownRow}>
-                    <Text style={[styles.breakdownLabel, { color: "#FF9800", fontWeight: "bold" }]}>
-                      Sick Leave:
-                    </Text>
-                    <Text style={[styles.breakdownValue, { color: "#FF9800", fontWeight: "bold" }]}>
+                    <Text style={[styles.breakdownLabel, { color: "#D32F2F", fontWeight: "bold" }]}>Sick Leave:</Text>
+                    <Text style={[styles.breakdownValue, { color: "#D32F2F", fontWeight: "bold" }]}>
                       Base pay only
+                    </Text>
+                  </View>
+                )}
+                {selectedShift.public_holiday && !selectedShift.sick_leave && (
+                  <View style={styles.breakdownRow}>
+                    <Text style={[styles.breakdownLabel, { color: "#FF9800", fontWeight: "bold" }]}>Public Holiday:</Text>
+                    <Text style={[styles.breakdownValue, { color: "#FF9800", fontWeight: "bold" }]}>
+                      Double pay
                     </Text>
                   </View>
                 )}
@@ -821,6 +880,14 @@ export default function Shifts() {
                     <Text style={styles.breakdownLabel}>Sunday Bonus:</Text>
                     <Text style={styles.breakdownValue}>
                       €{shiftCalculations[selectedShift.id].sunday_bonus.toFixed(2)}
+                    </Text>
+                  </View>
+                )}
+                {shiftCalculations[selectedShift.id].holiday_bonus > 0 && (
+                  <View style={styles.breakdownRow}>
+                    <Text style={styles.breakdownLabel}>Holiday Bonus:</Text>
+                    <Text style={styles.breakdownValue}>
+                      €{shiftCalculations[selectedShift.id].holiday_bonus.toFixed(2)}
                     </Text>
                   </View>
                 )}
