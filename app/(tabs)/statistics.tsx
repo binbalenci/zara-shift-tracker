@@ -128,6 +128,7 @@ export default function Statistics() {
     totalHours: 0,
   });
   const [chartData, setChartData] = useState<ChartData[]>([]);
+  const [maxChartValue, setMaxChartValue] = useState(2000);
   const [showBreakdown, setShowBreakdown] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -140,6 +141,21 @@ export default function Statistics() {
       setRefreshing(false);
     }
   }, [selectedMonth, selectedYear]);
+
+  // Helper function to calculate a nice round max value for the chart
+  const calculateMaxValue = (maxDataValue: number): number => {
+    if (maxDataValue === 0) return 500; // Default minimum for empty charts
+
+    // Add 20% padding for better visualization
+    const paddedValue = maxDataValue * 1.2;
+
+    // Round up to nice numbers
+    if (paddedValue <= 100) return Math.ceil(paddedValue / 10) * 10;
+    if (paddedValue <= 500) return Math.ceil(paddedValue / 50) * 50;
+    if (paddedValue <= 1000) return Math.ceil(paddedValue / 100) * 100;
+    if (paddedValue <= 2500) return Math.ceil(paddedValue / 250) * 250;
+    return Math.ceil(paddedValue / 500) * 500;
+  };
 
   const fetchMonthlyStats = async (date: Date) => {
     try {
@@ -344,7 +360,12 @@ export default function Statistics() {
         frontColor: month === monthNames[selectedMonth.getMonth()] ? "#64B5F6" : "#2196F3",
       }));
 
+      // Calculate dynamic max value for the chart
+      const maxDataValue = Math.max(...data.map((item) => item.value));
+      const dynamicMaxValue = calculateMaxValue(maxDataValue);
+
       setChartData(data);
+      setMaxChartValue(dynamicMaxValue);
     } catch (error) {
       console.error("Error fetching chart data:", error);
     }
@@ -398,8 +419,8 @@ export default function Statistics() {
           showVerticalLines
           verticalLinesColor="rgba(0,0,0,0.05)"
           verticalLinesSpacing={30}
-          noOfVerticalLines={20}
-          maxValue={1800}
+          noOfSections={Math.min(Math.max(Math.floor(maxChartValue / 250), 4), 8)}
+          maxValue={maxChartValue}
           labelWidth={35}
           xAxisLabelTextStyle={{ color: "#757575", fontSize: 11 }}
           renderTooltip={(item: ChartData) => (
