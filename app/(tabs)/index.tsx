@@ -289,54 +289,47 @@ export default function Home() {
       const eveningStart = new Date(`${newShift.date} ${profile.evening_start_time}`);
       const weekendStart = new Date(`${newShift.date} ${profile.weekend_extra_start_time}`);
 
-      // Calculate total duration in hours (including partial hours)
-      const durationHours = (shiftEnd.getTime() - shiftStart.getTime()) / (1000 * 60 * 60);
+      // Calculate total duration in hours
+      const totalHours = (shiftEnd.getTime() - shiftStart.getTime()) / (1000 * 60 * 60);
 
-      // Calculate evening hours (after 18:00 on weekdays)
+      // Calculate break duration and paid hours
+      const breakDuration = totalHours >= 8 ? 0.5 : 0;
+      const paidHours = totalHours - breakDuration;
+
+      // Calculate evening hours (after 18:00 on weekdays AND after 13:00 on Saturday)
       let eveningHours = 0;
-      if (!isWeekend(shiftStart) && shiftEnd > eveningStart && shiftStart < shiftEnd) {
-        const effectiveStart = shiftStart > eveningStart ? shiftStart : eveningStart;
-        eveningHours = (shiftEnd.getTime() - effectiveStart.getTime()) / (1000 * 60 * 60);
+      if (!isSunday(shiftStart)) {
+        const effectiveEveningStart = isWeekend(shiftStart) ? weekendStart : eveningStart;
+        if (shiftEnd > effectiveEveningStart && shiftStart < shiftEnd) {
+          const effectiveStart =
+            shiftStart > effectiveEveningStart ? shiftStart : effectiveEveningStart;
+          eveningHours = (shiftEnd.getTime() - effectiveStart.getTime()) / (1000 * 60 * 60);
+        }
       }
 
-      // Calculate weekend hours (after 13:00 on Saturday)
-      let weekendHours = 0;
-      if (isSaturday(shiftStart) && shiftEnd > weekendStart && shiftStart < shiftEnd) {
-        const effectiveStart = shiftStart > weekendStart ? shiftStart : weekendStart;
-        weekendHours = (shiftEnd.getTime() - effectiveStart.getTime()) / (1000 * 60 * 60);
-      }
+      // Calculate Sunday hours (all paid hours if Sunday, 0 otherwise)
+      const sundayHours = isSunday(shiftStart) ? paidHours : 0;
 
-      // Calculate Sunday hours
-      const sundayHours = isSunday(shiftStart) ? durationHours : 0;
+      // APPROACH 2: Base pay covers ALL paid hours, extras are just additional amounts
+      const basePay = paidHours * profile.base_hourly_rate; // ALL hours at base rate
+      const eveningExtra = eveningHours * profile.evening_extra; // Just the extra amount
+      const sundayExtra = sundayHours * profile.sunday_extra; // Just the extra amount
+      const totalPay = basePay + eveningExtra + sundayExtra;
 
-      // Calculate pay with 0.5h deduction for shifts 8 hours or longer
-      const baseHours = durationHours >= 8 ? durationHours - 0.5 : durationHours;
-      const basePay = baseHours * profile.base_hourly_rate;
-      const eveningExtra = eveningHours * profile.evening_extra;
-      const weekendExtra = weekendHours * profile.weekend_extra;
-      const sundayExtra =
-        sundayHours >= 8
-          ? (sundayHours - 0.5) * profile.base_hourly_rate
-          : sundayHours * profile.base_hourly_rate;
-      const totalPay = basePay + eveningExtra + weekendExtra + sundayExtra;
-
-      // Create the shift calculation
-      const shiftCalculation = {
+      // Create shift calculation record
+      const { error: calcError } = await supabase.from("shift_calculations").insert({
         shift_id: createdShift.id,
-        duration_hours: durationHours,
+        salary_profile_id: profile.id,
+        total_hours: totalHours,
+        paid_hours: paidHours,
         evening_hours: eveningHours,
-        weekend_hours: weekendHours,
         sunday_hours: sundayHours,
+        break_duration: breakDuration,
         base_pay: basePay,
         evening_extra: eveningExtra,
-        weekend_extra: weekendExtra,
         sunday_extra: sundayExtra,
         total_pay: totalPay,
-      };
-
-      const { error: calcError } = await supabase
-        .from("shift_calculations")
-        .insert([shiftCalculation]);
+      });
 
       if (calcError) throw calcError;
 

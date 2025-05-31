@@ -161,6 +161,11 @@ const styles = StyleSheet.create({
     marginTop: 10,
     borderBottomWidth: 0,
   },
+  breakdownSeparator: {
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+    marginVertical: 10,
+  },
 });
 
 export default function Shifts() {
@@ -288,47 +293,43 @@ export default function Shifts() {
       );
 
       // Calculate total duration in hours
-      const durationHours = (shiftEnd.getTime() - shiftStart.getTime()) / (1000 * 60 * 60);
+      const totalHours = (shiftEnd.getTime() - shiftStart.getTime()) / (1000 * 60 * 60);
 
-      // Calculate evening hours (after 18:00 on weekdays)
+      // Calculate break duration and paid hours
+      const breakDuration = totalHours >= 8 ? 0.5 : 0;
+      const paidHours = totalHours - breakDuration;
+
+      // Calculate evening hours (after 18:00 on weekdays AND after 13:00 on Saturday)
       let eveningHours = 0;
-      if (!isWeekend(shiftStart) && shiftEnd > eveningStart && shiftStart < shiftEnd) {
-        const effectiveStart = shiftStart > eveningStart ? shiftStart : eveningStart;
-        eveningHours = (shiftEnd.getTime() - effectiveStart.getTime()) / (1000 * 60 * 60);
+      if (!isSunday(shiftStart)) {
+        const effectiveEveningStart = isWeekend(shiftStart) ? weekendStart : eveningStart;
+        if (shiftEnd > effectiveEveningStart && shiftStart < shiftEnd) {
+          const effectiveStart =
+            shiftStart > effectiveEveningStart ? shiftStart : effectiveEveningStart;
+          eveningHours = (shiftEnd.getTime() - effectiveStart.getTime()) / (1000 * 60 * 60);
+        }
       }
 
-      // Calculate weekend hours (after 13:00 on Saturday)
-      let weekendHours = 0;
-      if (isSaturday(shiftStart) && shiftEnd > weekendStart && shiftStart < shiftEnd) {
-        const effectiveStart = shiftStart > weekendStart ? shiftStart : weekendStart;
-        weekendHours = (shiftEnd.getTime() - effectiveStart.getTime()) / (1000 * 60 * 60);
-      }
+      // Calculate Sunday hours (all paid hours if Sunday, 0 otherwise)
+      const sundayHours = isSunday(shiftStart) ? paidHours : 0;
 
-      // Calculate Sunday hours
-      const sundayHours = isSunday(shiftStart) ? durationHours : 0;
+      // APPROACH 2: Base pay covers ALL paid hours, extras are just additional amounts
+      const basePay = paidHours * profile.base_hourly_rate; // ALL hours at base rate
+      const eveningExtra = eveningHours * profile.evening_extra; // Just the extra amount
+      const sundayExtra = sundayHours * profile.sunday_extra; // Just the extra amount
+      const totalPay = basePay + eveningExtra + sundayExtra;
 
-      // Calculate pay with 0.5h deduction for shifts 8 hours or longer
-      const baseHours = durationHours >= 8 ? durationHours - 0.5 : durationHours;
-      const basePay = baseHours * profile.base_hourly_rate;
-      const eveningExtra = eveningHours * profile.evening_extra;
-      const weekendExtra = weekendHours * profile.weekend_extra;
-      const sundayExtra =
-        sundayHours >= 8
-          ? (sundayHours - 0.5) * profile.base_hourly_rate
-          : sundayHours * profile.base_hourly_rate;
-      const totalPay = basePay + eveningExtra + weekendExtra + sundayExtra;
-
-      // Update shift calculations
+      // Update shift calculation
       const { error: calcError } = await supabase
         .from("shift_calculations")
         .update({
-          duration_hours: durationHours,
+          total_hours: totalHours,
+          paid_hours: paidHours,
           evening_hours: eveningHours,
-          weekend_hours: weekendHours,
           sunday_hours: sundayHours,
+          break_duration: breakDuration,
           base_pay: basePay,
           evening_extra: eveningExtra,
-          weekend_extra: weekendExtra,
           sunday_extra: sundayExtra,
           total_pay: totalPay,
         })
@@ -681,25 +682,50 @@ export default function Shifts() {
                   </Text>
                 </View>
                 <View style={styles.breakdownRow}>
-                  <Text style={styles.breakdownLabel}>Base Pay:</Text>
+                  <Text style={styles.breakdownLabel}>Total Hours:</Text>
+                  <Text style={styles.breakdownValue}>
+                    {shiftCalculations[selectedShift.id].total_hours.toFixed(2)}h
+                  </Text>
+                </View>
+                <View style={styles.breakdownRow}>
+                  <Text style={styles.breakdownLabel}>Paid Hours:</Text>
+                  <Text style={styles.breakdownValue}>
+                    {shiftCalculations[selectedShift.id].paid_hours.toFixed(2)}h
+                  </Text>
+                </View>
+                <View style={styles.breakdownRow}>
+                  <Text style={styles.breakdownLabel}>Break Duration:</Text>
+                  <Text style={styles.breakdownValue}>
+                    {shiftCalculations[selectedShift.id].break_duration.toFixed(2)}h
+                  </Text>
+                </View>
+                <View style={styles.breakdownRow}>
+                  <Text style={styles.breakdownLabel}>Evening Hours (with bonus):</Text>
+                  <Text style={styles.breakdownValue}>
+                    {shiftCalculations[selectedShift.id].evening_hours.toFixed(2)}h
+                  </Text>
+                </View>
+                <View style={styles.breakdownRow}>
+                  <Text style={styles.breakdownLabel}>Sunday Hours (with bonus):</Text>
+                  <Text style={styles.breakdownValue}>
+                    {shiftCalculations[selectedShift.id].sunday_hours.toFixed(2)}h
+                  </Text>
+                </View>
+                <View style={styles.breakdownSeparator} />
+                <View style={styles.breakdownRow}>
+                  <Text style={styles.breakdownLabel}>Base Pay (all hours):</Text>
                   <Text style={styles.breakdownValue}>
                     €{shiftCalculations[selectedShift.id].base_pay.toFixed(2)}
                   </Text>
                 </View>
                 <View style={styles.breakdownRow}>
-                  <Text style={styles.breakdownLabel}>Evening Extra:</Text>
+                  <Text style={styles.breakdownLabel}>Evening Bonus:</Text>
                   <Text style={styles.breakdownValue}>
                     €{shiftCalculations[selectedShift.id].evening_extra.toFixed(2)}
                   </Text>
                 </View>
                 <View style={styles.breakdownRow}>
-                  <Text style={styles.breakdownLabel}>Weekend Extra:</Text>
-                  <Text style={styles.breakdownValue}>
-                    €{shiftCalculations[selectedShift.id].weekend_extra.toFixed(2)}
-                  </Text>
-                </View>
-                <View style={styles.breakdownRow}>
-                  <Text style={styles.breakdownLabel}>Sunday Extra:</Text>
+                  <Text style={styles.breakdownLabel}>Sunday Bonus:</Text>
                   <Text style={styles.breakdownValue}>
                     €{shiftCalculations[selectedShift.id].sunday_extra.toFixed(2)}
                   </Text>
