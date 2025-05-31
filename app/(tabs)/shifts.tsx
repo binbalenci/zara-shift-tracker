@@ -188,6 +188,7 @@ export default function Shifts() {
   const [editDate, setEditDate] = useState<Date>(new Date());
   const [editStartTime, setEditStartTime] = useState<Date | undefined>();
   const [editEndTime, setEditEndTime] = useState<Date | undefined>();
+  const [editSickLeave, setEditSickLeave] = useState<boolean>(false);
 
   const fetchShifts = async () => {
     try {
@@ -244,7 +245,7 @@ export default function Shifts() {
         return;
       }
 
-      // Update the shift
+      // Update the shift with sick leave status
       const { error: shiftError } = await supabase
         .from("shifts")
         .update({
@@ -265,6 +266,7 @@ export default function Shifts() {
               hourCycle: "h23",
             })
             .replace(".", ":"),
+          sick_leave: editSickLeave,
         })
         .eq("id", selectedShift.id);
 
@@ -303,7 +305,8 @@ export default function Shifts() {
       let weekdayEveningHours = 0;
       let saturdayEveningHours = 0;
 
-      if (!isSunday(shiftStart)) {
+      // For sick leave, no evening hours are counted for bonuses
+      if (!editSickLeave && !isSunday(shiftStart)) {
         if (isSaturday(shiftStart)) {
           // Saturday: evening rate starts at 13:00
           if (shiftEnd > weekendStart && shiftStart < shiftEnd) {
@@ -321,14 +324,14 @@ export default function Shifts() {
         }
       }
 
-      // Calculate Sunday hours (all paid hours if Sunday, 0 otherwise)
-      const sundayHours = isSunday(shiftStart) ? paidHours : 0;
+      // Calculate Sunday hours (all paid hours if Sunday and not sick leave, 0 otherwise)
+      const sundayHours = !editSickLeave && isSunday(shiftStart) ? paidHours : 0;
 
       // APPROACH 2: Base pay covers ALL paid hours, bonuses are just additional amounts
       const basePay = paidHours * profile.base_hourly_rate; // ALL hours at base rate
-      const weekdayEveningBonus = weekdayEveningHours * 4.18; // €4.18/hr weekday evening bonus
-      const saturdayEveningBonus = saturdayEveningHours * 5.46; // €5.46/hr Saturday evening bonus
-      const sundayBonus = sundayHours * profile.sunday_extra; // Sunday bonus rate
+      const weekdayEveningBonus = editSickLeave ? 0 : weekdayEveningHours * 4.18; // No bonus for sick leave
+      const saturdayEveningBonus = editSickLeave ? 0 : saturdayEveningHours * 5.46; // No bonus for sick leave
+      const sundayBonus = editSickLeave ? 0 : sundayHours * profile.sunday_extra; // No bonus for sick leave
       const totalPay = basePay + weekdayEveningBonus + saturdayEveningBonus + sundayBonus;
 
       // Update shift calculation with new split evening fields
@@ -398,6 +401,7 @@ export default function Shifts() {
     setEditDate(new Date(shift.date));
     setEditStartTime(new Date(`2000-01-01T${shift.start_time}`));
     setEditEndTime(new Date(`2000-01-01T${shift.end_time}`));
+    setEditSickLeave(shift.sick_leave || false);
     setShowModifyModal(true);
   };
 
@@ -417,18 +421,43 @@ export default function Shifts() {
     });
   };
 
+  const formatHours = (hours: number): string => {
+    // Remove unnecessary decimals: 5.00 -> 5h, 5.50 -> 5.5h
+    return hours % 1 === 0 ? `${hours}h` : `${hours.toFixed(1)}h`;
+  };
+
   const renderShift = ({ item }: { item: Shift }) => {
     const calculation = shiftCalculations[item.id];
+    const isSickLeave = item.sick_leave || false;
+
     return (
       <TouchableOpacity
-        style={styles.shiftBox}
+        style={[
+          styles.shiftBox,
+          isSickLeave && { backgroundColor: "#FFF8E1" }, // Light amber for sick leave
+        ]}
         onPress={() => {
           setSelectedShift(item);
           setShowBreakdownModal(true);
         }}
       >
         <View style={styles.shiftInfo}>
-          <Text style={styles.shiftTime}>{formatDate(item.date)}</Text>
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <Text style={styles.shiftTime}>{formatDate(item.date)}</Text>
+            {isSickLeave && (
+              <View
+                style={{
+                  backgroundColor: "#FF9800",
+                  paddingHorizontal: 6,
+                  paddingVertical: 2,
+                  borderRadius: 4,
+                  marginLeft: 8,
+                }}
+              >
+                <Text style={{ color: "white", fontSize: 10, fontWeight: "bold" }}>SICK</Text>
+              </View>
+            )}
+          </View>
           <Text style={styles.shiftDate}>
             {formatTime(item.start_time)} - {formatTime(item.end_time)}
           </Text>
@@ -571,6 +600,21 @@ export default function Shifts() {
               <MaterialIcons name="access-time" size={24} color="#2196F3" />
             </TouchableOpacity>
 
+            {/* Sick Leave Row */}
+            <TouchableOpacity style={styles.row} onPress={() => setEditSickLeave(!editSickLeave)}>
+              <View style={styles.rowLabel}>
+                <Text style={styles.labelText}>Sick Leave</Text>
+                <Text style={styles.valueText}>
+                  {editSickLeave ? "Base pay only (no bonuses)" : "Normal shift calculation"}
+                </Text>
+              </View>
+              <MaterialIcons
+                name={editSickLeave ? "check-box" : "check-box-outline-blank"}
+                size={24}
+                color={editSickLeave ? "#FF9800" : "#666"}
+              />
+            </TouchableOpacity>
+
             <View style={styles.modalButtons}>
               <TouchableOpacity
                 style={styles.cancelButton}
@@ -695,42 +739,60 @@ export default function Shifts() {
                     {formatTime(selectedShift.start_time)} - {formatTime(selectedShift.end_time)}
                   </Text>
                 </View>
+                {selectedShift.sick_leave && (
+                  <View style={styles.breakdownRow}>
+                    <Text style={[styles.breakdownLabel, { color: "#FF9800", fontWeight: "bold" }]}>
+                      Sick Leave:
+                    </Text>
+                    <Text style={[styles.breakdownValue, { color: "#FF9800", fontWeight: "bold" }]}>
+                      Base pay only
+                    </Text>
+                  </View>
+                )}
                 <View style={styles.breakdownRow}>
                   <Text style={styles.breakdownLabel}>Total Hours:</Text>
                   <Text style={styles.breakdownValue}>
-                    {shiftCalculations[selectedShift.id].total_hours.toFixed(2)}h
+                    {formatHours(shiftCalculations[selectedShift.id].total_hours)}
                   </Text>
                 </View>
                 <View style={styles.breakdownRow}>
                   <Text style={styles.breakdownLabel}>Paid Hours:</Text>
                   <Text style={styles.breakdownValue}>
-                    {shiftCalculations[selectedShift.id].paid_hours.toFixed(2)}h
+                    {formatHours(shiftCalculations[selectedShift.id].paid_hours)}
                   </Text>
                 </View>
-                <View style={styles.breakdownRow}>
-                  <Text style={styles.breakdownLabel}>Break Duration:</Text>
-                  <Text style={styles.breakdownValue}>
-                    {shiftCalculations[selectedShift.id].break_duration.toFixed(2)}h
-                  </Text>
-                </View>
-                <View style={styles.breakdownRow}>
-                  <Text style={styles.breakdownLabel}>Weekday Evening Hours:</Text>
-                  <Text style={styles.breakdownValue}>
-                    {shiftCalculations[selectedShift.id].weekday_evening_hours.toFixed(2)}h
-                  </Text>
-                </View>
-                <View style={styles.breakdownRow}>
-                  <Text style={styles.breakdownLabel}>Saturday Evening Hours:</Text>
-                  <Text style={styles.breakdownValue}>
-                    {shiftCalculations[selectedShift.id].saturday_evening_hours.toFixed(2)}h
-                  </Text>
-                </View>
-                <View style={styles.breakdownRow}>
-                  <Text style={styles.breakdownLabel}>Sunday Hours:</Text>
-                  <Text style={styles.breakdownValue}>
-                    {shiftCalculations[selectedShift.id].sunday_hours.toFixed(2)}h
-                  </Text>
-                </View>
+                {shiftCalculations[selectedShift.id].break_duration > 0 && (
+                  <View style={styles.breakdownRow}>
+                    <Text style={styles.breakdownLabel}>Break Duration:</Text>
+                    <Text style={styles.breakdownValue}>
+                      {formatHours(shiftCalculations[selectedShift.id].break_duration)}
+                    </Text>
+                  </View>
+                )}
+                {shiftCalculations[selectedShift.id].weekday_evening_hours > 0 && (
+                  <View style={styles.breakdownRow}>
+                    <Text style={styles.breakdownLabel}>Weekday Evening Hours:</Text>
+                    <Text style={styles.breakdownValue}>
+                      {formatHours(shiftCalculations[selectedShift.id].weekday_evening_hours)}
+                    </Text>
+                  </View>
+                )}
+                {shiftCalculations[selectedShift.id].saturday_evening_hours > 0 && (
+                  <View style={styles.breakdownRow}>
+                    <Text style={styles.breakdownLabel}>Saturday Evening Hours:</Text>
+                    <Text style={styles.breakdownValue}>
+                      {formatHours(shiftCalculations[selectedShift.id].saturday_evening_hours)}
+                    </Text>
+                  </View>
+                )}
+                {shiftCalculations[selectedShift.id].sunday_hours > 0 && (
+                  <View style={styles.breakdownRow}>
+                    <Text style={styles.breakdownLabel}>Sunday Hours:</Text>
+                    <Text style={styles.breakdownValue}>
+                      {formatHours(shiftCalculations[selectedShift.id].sunday_hours)}
+                    </Text>
+                  </View>
+                )}
                 <View style={styles.breakdownSeparator} />
                 <View style={styles.breakdownRow}>
                   <Text style={styles.breakdownLabel}>Base Pay (all hours):</Text>
@@ -738,24 +800,30 @@ export default function Shifts() {
                     €{shiftCalculations[selectedShift.id].base_pay.toFixed(2)}
                   </Text>
                 </View>
-                <View style={styles.breakdownRow}>
-                  <Text style={styles.breakdownLabel}>Weekday Evening Bonus:</Text>
-                  <Text style={styles.breakdownValue}>
-                    €{shiftCalculations[selectedShift.id].weekday_evening_bonus.toFixed(2)}
-                  </Text>
-                </View>
-                <View style={styles.breakdownRow}>
-                  <Text style={styles.breakdownLabel}>Saturday Evening Bonus:</Text>
-                  <Text style={styles.breakdownValue}>
-                    €{shiftCalculations[selectedShift.id].saturday_evening_bonus.toFixed(2)}
-                  </Text>
-                </View>
-                <View style={styles.breakdownRow}>
-                  <Text style={styles.breakdownLabel}>Sunday Bonus:</Text>
-                  <Text style={styles.breakdownValue}>
-                    €{shiftCalculations[selectedShift.id].sunday_bonus.toFixed(2)}
-                  </Text>
-                </View>
+                {shiftCalculations[selectedShift.id].weekday_evening_bonus > 0 && (
+                  <View style={styles.breakdownRow}>
+                    <Text style={styles.breakdownLabel}>Weekday Evening Bonus:</Text>
+                    <Text style={styles.breakdownValue}>
+                      €{shiftCalculations[selectedShift.id].weekday_evening_bonus.toFixed(2)}
+                    </Text>
+                  </View>
+                )}
+                {shiftCalculations[selectedShift.id].saturday_evening_bonus > 0 && (
+                  <View style={styles.breakdownRow}>
+                    <Text style={styles.breakdownLabel}>Saturday Evening Bonus:</Text>
+                    <Text style={styles.breakdownValue}>
+                      €{shiftCalculations[selectedShift.id].saturday_evening_bonus.toFixed(2)}
+                    </Text>
+                  </View>
+                )}
+                {shiftCalculations[selectedShift.id].sunday_bonus > 0 && (
+                  <View style={styles.breakdownRow}>
+                    <Text style={styles.breakdownLabel}>Sunday Bonus:</Text>
+                    <Text style={styles.breakdownValue}>
+                      €{shiftCalculations[selectedShift.id].sunday_bonus.toFixed(2)}
+                    </Text>
+                  </View>
+                )}
                 <View style={[styles.breakdownRow, styles.totalRow]}>
                   <Text style={[styles.breakdownLabel, { fontWeight: "bold" }]}>Total:</Text>
                   <Text style={[styles.breakdownValue, { color: "#4CAF50", fontWeight: "bold" }]}>

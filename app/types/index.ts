@@ -38,6 +38,7 @@ export interface Shift {
   start_time: string;
   end_time: string;
   salary_profile_id: string;
+  sick_leave: boolean;
 }
 
 export type RootStackParamList = {
