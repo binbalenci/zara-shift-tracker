@@ -101,7 +101,8 @@ interface MonthlyStats {
   totalShifts: number;
   dayBreakdown: DayCount;
   baseEarnings: number;
-  eveningEarnings: number;
+  weekdayEveningEarnings: number;
+  saturdayEveningEarnings: number;
   sundayEarnings: number;
   totalEarnings: number;
   totalHours: number;
@@ -121,7 +122,8 @@ export default function Statistics() {
     totalShifts: 0,
     dayBreakdown: {},
     baseEarnings: 0,
-    eveningEarnings: 0,
+    weekdayEveningEarnings: 0,
+    saturdayEveningEarnings: 0,
     sundayEarnings: 0,
     totalEarnings: 0,
     totalHours: 0,
@@ -207,8 +209,9 @@ export default function Statistics() {
             id,
             shift_id,
             base_pay,
-            evening_extra,
-            sunday_extra,
+            weekday_evening_bonus,
+            saturday_evening_bonus,
+            sunday_bonus,
             total_pay,
             total_hours
           )
@@ -235,7 +238,8 @@ export default function Statistics() {
       };
 
       let baseEarnings = 0;
-      let eveningEarnings = 0;
+      let weekdayEveningEarnings = 0;
+      let saturdayEveningEarnings = 0;
       let sundayEarnings = 0;
       let totalEarnings = 0;
       let totalHours = 0;
@@ -249,8 +253,9 @@ export default function Statistics() {
         if (shift.shift_calculations && shift.shift_calculations.length > 0) {
           const calc = shift.shift_calculations[0];
           baseEarnings += calc.base_pay || 0;
-          eveningEarnings += calc.evening_extra || 0;
-          sundayEarnings += calc.sunday_extra || 0;
+          weekdayEveningEarnings += calc.weekday_evening_bonus || 0;
+          saturdayEveningEarnings += calc.saturday_evening_bonus || 0;
+          sundayEarnings += calc.sunday_bonus || 0;
           totalEarnings += calc.total_pay || 0;
           totalHours += calc.total_hours || 0;
         }
@@ -260,7 +265,8 @@ export default function Statistics() {
         totalShifts: shifts?.length || 0,
         dayBreakdown,
         baseEarnings,
-        eveningEarnings,
+        weekdayEveningEarnings,
+        saturdayEveningEarnings,
         sundayEarnings,
         totalEarnings,
         totalHours,
@@ -559,9 +565,15 @@ export default function Statistics() {
                 </Text>
               </View>
               <View style={styles.statRow}>
-                <Text style={[styles.label, { color: "#666" }]}>Evening Bonus</Text>
+                <Text style={[styles.label, { color: "#666" }]}>Weekday Evening Bonus</Text>
                 <Text style={[styles.value, { color: "#333" }]}>
-                  €{monthlyStats.eveningEarnings.toFixed(2)}
+                  €{monthlyStats.weekdayEveningEarnings.toFixed(2)}
+                </Text>
+              </View>
+              <View style={styles.statRow}>
+                <Text style={[styles.label, { color: "#666" }]}>Saturday Evening Bonus</Text>
+                <Text style={[styles.value, { color: "#333" }]}>
+                  €{monthlyStats.saturdayEveningEarnings.toFixed(2)}
                 </Text>
               </View>
               <View style={styles.statRow}>

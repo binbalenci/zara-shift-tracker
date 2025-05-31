@@ -193,9 +193,9 @@ export default function Home() {
       if (isSunday) {
         hourlyRate *= 2;
       } else if (isSaturday && hour >= 13) {
-        hourlyRate += 5.46;
+        hourlyRate += 5.46; // Saturday evening bonus
       } else if (hour >= 18) {
-        hourlyRate += 4.18;
+        hourlyRate += 4.18; // Weekday evening bonus
       }
 
       totalEarnings += hourlyRate;
@@ -296,38 +296,52 @@ export default function Home() {
       const breakDuration = totalHours >= 8 ? 0.5 : 0;
       const paidHours = totalHours - breakDuration;
 
-      // Calculate evening hours (after 18:00 on weekdays AND after 13:00 on Saturday)
-      let eveningHours = 0;
+      // Calculate evening hours - now split between weekday and Saturday
+      let weekdayEveningHours = 0;
+      let saturdayEveningHours = 0;
+
       if (!isSunday(shiftStart)) {
-        const effectiveEveningStart = isWeekend(shiftStart) ? weekendStart : eveningStart;
-        if (shiftEnd > effectiveEveningStart && shiftStart < shiftEnd) {
-          const effectiveStart =
-            shiftStart > effectiveEveningStart ? shiftStart : effectiveEveningStart;
-          eveningHours = (shiftEnd.getTime() - effectiveStart.getTime()) / (1000 * 60 * 60);
+        if (isSaturday(shiftStart)) {
+          // Saturday: evening rate starts at 13:00
+          if (shiftEnd > weekendStart && shiftStart < shiftEnd) {
+            const effectiveStart = shiftStart > weekendStart ? shiftStart : weekendStart;
+            saturdayEveningHours =
+              (shiftEnd.getTime() - effectiveStart.getTime()) / (1000 * 60 * 60);
+          }
+        } else {
+          // Weekday: evening rate starts at 18:00
+          if (shiftEnd > eveningStart && shiftStart < shiftEnd) {
+            const effectiveStart = shiftStart > eveningStart ? shiftStart : eveningStart;
+            weekdayEveningHours =
+              (shiftEnd.getTime() - effectiveStart.getTime()) / (1000 * 60 * 60);
+          }
         }
       }
 
       // Calculate Sunday hours (all paid hours if Sunday, 0 otherwise)
       const sundayHours = isSunday(shiftStart) ? paidHours : 0;
 
-      // APPROACH 2: Base pay covers ALL paid hours, extras are just additional amounts
+      // APPROACH 2: Base pay covers ALL paid hours, bonuses are just additional amounts
       const basePay = paidHours * profile.base_hourly_rate; // ALL hours at base rate
-      const eveningExtra = eveningHours * profile.evening_extra; // Just the extra amount
-      const sundayExtra = sundayHours * profile.sunday_extra; // Just the extra amount
-      const totalPay = basePay + eveningExtra + sundayExtra;
+      const weekdayEveningBonus = weekdayEveningHours * 4.18; // €4.18/hr weekday evening bonus
+      const saturdayEveningBonus = saturdayEveningHours * 5.46; // €5.46/hr Saturday evening bonus
+      const sundayBonus = sundayHours * profile.sunday_extra; // Sunday bonus rate
+      const totalPay = basePay + weekdayEveningBonus + saturdayEveningBonus + sundayBonus;
 
-      // Create shift calculation record
+      // Create shift calculation record with new split evening fields
       const { error: calcError } = await supabase.from("shift_calculations").insert({
         shift_id: createdShift.id,
         salary_profile_id: profile.id,
         total_hours: totalHours,
         paid_hours: paidHours,
-        evening_hours: eveningHours,
+        weekday_evening_hours: weekdayEveningHours,
+        saturday_evening_hours: saturdayEveningHours,
         sunday_hours: sundayHours,
         break_duration: breakDuration,
         base_pay: basePay,
-        evening_extra: eveningExtra,
-        sunday_extra: sundayExtra,
+        weekday_evening_bonus: weekdayEveningBonus,
+        saturday_evening_bonus: saturdayEveningBonus,
+        sunday_bonus: sundayBonus,
         total_pay: totalPay,
       });
 

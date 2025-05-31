@@ -299,38 +299,52 @@ export default function Shifts() {
       const breakDuration = totalHours >= 8 ? 0.5 : 0;
       const paidHours = totalHours - breakDuration;
 
-      // Calculate evening hours (after 18:00 on weekdays AND after 13:00 on Saturday)
-      let eveningHours = 0;
+      // Calculate evening hours - now split between weekday and Saturday
+      let weekdayEveningHours = 0;
+      let saturdayEveningHours = 0;
+
       if (!isSunday(shiftStart)) {
-        const effectiveEveningStart = isWeekend(shiftStart) ? weekendStart : eveningStart;
-        if (shiftEnd > effectiveEveningStart && shiftStart < shiftEnd) {
-          const effectiveStart =
-            shiftStart > effectiveEveningStart ? shiftStart : effectiveEveningStart;
-          eveningHours = (shiftEnd.getTime() - effectiveStart.getTime()) / (1000 * 60 * 60);
+        if (isSaturday(shiftStart)) {
+          // Saturday: evening rate starts at 13:00
+          if (shiftEnd > weekendStart && shiftStart < shiftEnd) {
+            const effectiveStart = shiftStart > weekendStart ? shiftStart : weekendStart;
+            saturdayEveningHours =
+              (shiftEnd.getTime() - effectiveStart.getTime()) / (1000 * 60 * 60);
+          }
+        } else {
+          // Weekday: evening rate starts at 18:00
+          if (shiftEnd > eveningStart && shiftStart < shiftEnd) {
+            const effectiveStart = shiftStart > eveningStart ? shiftStart : eveningStart;
+            weekdayEveningHours =
+              (shiftEnd.getTime() - effectiveStart.getTime()) / (1000 * 60 * 60);
+          }
         }
       }
 
       // Calculate Sunday hours (all paid hours if Sunday, 0 otherwise)
       const sundayHours = isSunday(shiftStart) ? paidHours : 0;
 
-      // APPROACH 2: Base pay covers ALL paid hours, extras are just additional amounts
+      // APPROACH 2: Base pay covers ALL paid hours, bonuses are just additional amounts
       const basePay = paidHours * profile.base_hourly_rate; // ALL hours at base rate
-      const eveningExtra = eveningHours * profile.evening_extra; // Just the extra amount
-      const sundayExtra = sundayHours * profile.sunday_extra; // Just the extra amount
-      const totalPay = basePay + eveningExtra + sundayExtra;
+      const weekdayEveningBonus = weekdayEveningHours * 4.18; // €4.18/hr weekday evening bonus
+      const saturdayEveningBonus = saturdayEveningHours * 5.46; // €5.46/hr Saturday evening bonus
+      const sundayBonus = sundayHours * profile.sunday_extra; // Sunday bonus rate
+      const totalPay = basePay + weekdayEveningBonus + saturdayEveningBonus + sundayBonus;
 
-      // Update shift calculation
+      // Update shift calculation with new split evening fields
       const { error: calcError } = await supabase
         .from("shift_calculations")
         .update({
           total_hours: totalHours,
           paid_hours: paidHours,
-          evening_hours: eveningHours,
+          weekday_evening_hours: weekdayEveningHours,
+          saturday_evening_hours: saturdayEveningHours,
           sunday_hours: sundayHours,
           break_duration: breakDuration,
           base_pay: basePay,
-          evening_extra: eveningExtra,
-          sunday_extra: sundayExtra,
+          weekday_evening_bonus: weekdayEveningBonus,
+          saturday_evening_bonus: saturdayEveningBonus,
+          sunday_bonus: sundayBonus,
           total_pay: totalPay,
         })
         .eq("shift_id", selectedShift.id);
@@ -700,13 +714,19 @@ export default function Shifts() {
                   </Text>
                 </View>
                 <View style={styles.breakdownRow}>
-                  <Text style={styles.breakdownLabel}>Evening Hours (with bonus):</Text>
+                  <Text style={styles.breakdownLabel}>Weekday Evening Hours:</Text>
                   <Text style={styles.breakdownValue}>
-                    {shiftCalculations[selectedShift.id].evening_hours.toFixed(2)}h
+                    {shiftCalculations[selectedShift.id].weekday_evening_hours.toFixed(2)}h
                   </Text>
                 </View>
                 <View style={styles.breakdownRow}>
-                  <Text style={styles.breakdownLabel}>Sunday Hours (with bonus):</Text>
+                  <Text style={styles.breakdownLabel}>Saturday Evening Hours:</Text>
+                  <Text style={styles.breakdownValue}>
+                    {shiftCalculations[selectedShift.id].saturday_evening_hours.toFixed(2)}h
+                  </Text>
+                </View>
+                <View style={styles.breakdownRow}>
+                  <Text style={styles.breakdownLabel}>Sunday Hours:</Text>
                   <Text style={styles.breakdownValue}>
                     {shiftCalculations[selectedShift.id].sunday_hours.toFixed(2)}h
                   </Text>
@@ -719,15 +739,21 @@ export default function Shifts() {
                   </Text>
                 </View>
                 <View style={styles.breakdownRow}>
-                  <Text style={styles.breakdownLabel}>Evening Bonus:</Text>
+                  <Text style={styles.breakdownLabel}>Weekday Evening Bonus:</Text>
                   <Text style={styles.breakdownValue}>
-                    €{shiftCalculations[selectedShift.id].evening_extra.toFixed(2)}
+                    €{shiftCalculations[selectedShift.id].weekday_evening_bonus.toFixed(2)}
+                  </Text>
+                </View>
+                <View style={styles.breakdownRow}>
+                  <Text style={styles.breakdownLabel}>Saturday Evening Bonus:</Text>
+                  <Text style={styles.breakdownValue}>
+                    €{shiftCalculations[selectedShift.id].saturday_evening_bonus.toFixed(2)}
                   </Text>
                 </View>
                 <View style={styles.breakdownRow}>
                   <Text style={styles.breakdownLabel}>Sunday Bonus:</Text>
                   <Text style={styles.breakdownValue}>
-                    €{shiftCalculations[selectedShift.id].sunday_extra.toFixed(2)}
+                    €{shiftCalculations[selectedShift.id].sunday_bonus.toFixed(2)}
                   </Text>
                 </View>
                 <View style={[styles.breakdownRow, styles.totalRow]}>
