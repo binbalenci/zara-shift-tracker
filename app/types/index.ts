@@ -17,15 +17,15 @@ export interface ShiftCalculation {
   id: string;
   shift_id: string;
   salary_profile_id: string;
-  duration_hours: number;  // Total hours of the shift
-  evening_hours: number;
-  weekend_hours: number;
-  sunday_hours: number;
-  base_pay: number;
-  evening_extra: number;
-  weekend_extra: number;
-  sunday_extra: number;
-  total_pay: number;
+  total_hours: number;     // Total shift duration (for logging)
+  paid_hours: number;      // Billable hours (total - break)
+  evening_hours: number;   // Hours getting evening bonus
+  sunday_hours: number;    // Hours getting Sunday bonus
+  break_duration: number;  // Break time (0.5h if shift >= 8h)
+  base_pay: number;        // paid_hours × base_rate (covers ALL hours)
+  evening_extra: number;   // evening_hours × evening_extra_rate (just extra)
+  sunday_extra: number;    // sunday_hours × sunday_extra_rate (just extra)  
+  total_pay: number;       // base_pay + evening_extra + sunday_extra
   created_at: string;
   updated_at: string;
 }
