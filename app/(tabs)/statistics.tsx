@@ -51,7 +51,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 2,
     elevation: 2,
-    overflow: "hidden",
   },
   card: {
     marginBottom: 15,
@@ -131,6 +130,23 @@ export default function Statistics() {
   const [maxChartValue, setMaxChartValue] = useState(2000);
   const [showBreakdown, setShowBreakdown] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Calculate responsive chart dimensions
+  const screenWidth = Dimensions.get("window").width;
+  const isDesktop = screenWidth > 768; // Tablet/desktop breakpoint
+
+  // For mobile: minimum width to ensure bars are readable, allows horizontal scroll
+  // For desktop: use container width properly to avoid overflow
+  const chartWidth = isDesktop
+    ? Math.min(screenWidth - 120, 1000) // Ensure it fits in container with more padding
+    : Math.max(screenWidth - 40, 480); // Minimum width on mobile for 12 months
+
+  const barWidth = isDesktop ? Math.max((chartWidth - 150) / 18, 20) : 22; // Better calculation
+  const spacing = isDesktop ? Math.max((chartWidth - 200) / 20, 12) : 15;
+
+  // Dynamic vertical lines based on chart width
+  const verticalLinesSpacing = isDesktop ? Math.max(chartWidth / 20, 30) : 30;
+  const noOfVerticalLines = Math.floor(chartWidth / verticalLinesSpacing);
 
   const onRefresh = React.useCallback(async () => {
     setRefreshing(true);
@@ -399,50 +415,102 @@ export default function Statistics() {
       </View>
 
       {/* Chart */}
-      <View style={styles.chartContainer}>
-        <BarChart
-          data={chartData}
-          width={Dimensions.get("window").width - 80}
-          height={220}
-          spacing={15}
-          initialSpacing={8}
-          barWidth={22}
-          isAnimated
-          animationDuration={1000}
-          showXAxisIndices
-          xAxisThickness={1}
-          xAxisColor="#BDBDBD"
-          yAxisThickness={1}
-          yAxisColor="#BDBDBD"
-          yAxisTextStyle={{ color: "#757575" }}
-          hideRules
-          showVerticalLines
-          verticalLinesColor="rgba(0,0,0,0.05)"
-          verticalLinesSpacing={30}
-          noOfSections={Math.min(Math.max(Math.floor(maxChartValue / 250), 4), 8)}
-          maxValue={maxChartValue}
-          labelWidth={35}
-          xAxisLabelTextStyle={{ color: "#757575", fontSize: 11 }}
-          renderTooltip={(item: ChartData) => (
-            <View
-              style={{
-                backgroundColor: "white",
-                padding: 8,
-                borderRadius: 4,
-                shadowColor: "#000",
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.25,
-                shadowRadius: 3.84,
-                elevation: 5,
+      <View style={[styles.chartContainer, { width: isDesktop ? chartWidth + 30 : undefined }]}>
+        {isDesktop ? (
+          <BarChart
+            data={chartData}
+            width={chartWidth}
+            height={220}
+            spacing={spacing}
+            initialSpacing={8}
+            barWidth={barWidth}
+            isAnimated
+            animationDuration={1000}
+            showXAxisIndices
+            xAxisThickness={1}
+            xAxisColor="#BDBDBD"
+            yAxisThickness={1}
+            yAxisColor="#BDBDBD"
+            yAxisTextStyle={{ color: "#757575" }}
+            hideRules
+            showVerticalLines
+            verticalLinesColor="rgba(0,0,0,0.05)"
+            verticalLinesSpacing={verticalLinesSpacing}
+            noOfVerticalLines={noOfVerticalLines}
+            noOfSections={Math.min(Math.max(Math.floor(maxChartValue / 250), 4), 8)}
+            maxValue={maxChartValue}
+            labelWidth={35}
+            xAxisLabelTextStyle={{ color: "#757575", fontSize: 11 }}
+            renderTooltip={(item: ChartData) => (
+              <View
+                style={{
+                  backgroundColor: "white",
+                  padding: 8,
+                  borderRadius: 4,
+                  shadowColor: "#000",
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.25,
+                  shadowRadius: 3.84,
+                  elevation: 5,
+                }}
+              >
+                <Text style={{ color: "#333", fontWeight: "bold" }}>€{item.value.toFixed(2)}</Text>
+              </View>
+            )}
+            onPress={(item: ChartData) => {
+              handleBarPress(item);
+            }}
+          />
+        ) : (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <BarChart
+              data={chartData}
+              width={chartWidth}
+              height={220}
+              spacing={spacing}
+              initialSpacing={8}
+              barWidth={barWidth}
+              isAnimated
+              animationDuration={1000}
+              showXAxisIndices
+              xAxisThickness={1}
+              xAxisColor="#BDBDBD"
+              yAxisThickness={1}
+              yAxisColor="#BDBDBD"
+              yAxisTextStyle={{ color: "#757575" }}
+              hideRules
+              showVerticalLines
+              verticalLinesColor="rgba(0,0,0,0.05)"
+              verticalLinesSpacing={verticalLinesSpacing}
+              noOfVerticalLines={noOfVerticalLines}
+              noOfSections={Math.min(Math.max(Math.floor(maxChartValue / 250), 4), 8)}
+              maxValue={maxChartValue}
+              labelWidth={35}
+              xAxisLabelTextStyle={{ color: "#757575", fontSize: 11 }}
+              renderTooltip={(item: ChartData) => (
+                <View
+                  style={{
+                    backgroundColor: "white",
+                    padding: 8,
+                    borderRadius: 4,
+                    shadowColor: "#000",
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.25,
+                    shadowRadius: 3.84,
+                    elevation: 5,
+                  }}
+                >
+                  <Text style={{ color: "#333", fontWeight: "bold" }}>
+                    €{item.value.toFixed(2)}
+                  </Text>
+                </View>
+              )}
+              onPress={(item: ChartData) => {
+                handleBarPress(item);
               }}
-            >
-              <Text style={{ color: "#333", fontWeight: "bold" }}>€{item.value.toFixed(2)}</Text>
-            </View>
-          )}
-          onPress={(item: ChartData) => {
-            handleBarPress(item);
-          }}
-        />
+            />
+          </ScrollView>
+        )}
       </View>
 
       {showBreakdown && (
