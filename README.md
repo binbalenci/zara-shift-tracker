@@ -7,11 +7,13 @@ Hey there! This is my first "vibe coding" project built with [Cursor](https://cu
 My wife works at Zara with different pay rates depending on when she works:
 
 - Regular hours? Got that covered! ⏰
-- Evening shifts after 6 PM? Extra cash! 🌙
-- Weekend work after 1 PM? Cha-ching! 🎉
+- Evening shifts? Now with split rates - weekdays after 6 PM and Saturdays after 1 PM! 🌙
+- Weekend work? Different rates for different days! 🎉
 - Sunday shifts? Double the money! 💰
+- Public holidays? Cha-ching with double pay! 🎊
+- Sick leave? Base pay only (but hey, rest is important!) 🏥
 
-Instead of calculating all this stuff with a calculator (boring!), I built this app to do it automatically. Just punch in your shift times, and boom - it tells you exactly how much you earned!
+Instead of calculating all this stuff with a calculator (boring!), I built this app to do it automatically. Just punch in your shift times, mark any special conditions, and boom - it tells you exactly how much you earned!
 
 ## 🚀 Tech Stack
 
@@ -81,13 +83,24 @@ We've got two main tables in Supabase:
 
 - 📝 Log shifts with start and end times
 - 💰 Automatic calculation of:
-  - Base pay
-  - Evening extras
+  - Base pay for all hours
+  - Split evening extras (weekdays vs Saturdays)
   - Weekend bonuses
   - Sunday double rates
-- 📊 Pretty charts showing monthly earnings
+  - Public holiday bonuses (100% extra!)
+  - Sick leave handling (base pay only)
+- 🎨 Visual indicators:
+  - Red background + "SICK" badge for sick leave
+  - Amber background + "HOLIDAY" badge for public holidays
+  - Color-coded shift types for quick identification
+- 📊 Enhanced statistics with:
+  - Monthly earnings charts
+  - Holiday shifts tracking (count + day numbers)
+  - Sick leave tracking (count + day numbers)
+  - Breakdown of all bonus types
 - ⚙️ Configurable salary profiles
-- 🎨 Clean and simple UI
+- 🎯 Smart precedence logic (sick leave overrides all bonuses)
+- 🎨 Clean and simplified UI showing only relevant information
 - ✨ Confetti celebration when adding shifts (because why not?)
 
 ## 🤖 Vibe Coding with Cursor

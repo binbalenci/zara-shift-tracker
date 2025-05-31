@@ -1,5 +1,38 @@
 # Changelog
 
+## [1.4.0] - 2024-12-19
+
+### Added
+
+- **Public Holiday Support**:
+  - Public holiday checkbox in shift modification
+  - 100% bonus calculation (double pay for holiday shifts)
+  - Visual indicators with amber background and orange "HOLIDAY" badge
+- **Sick Leave Functionality**:
+  - Sick leave checkbox in shift modification
+  - Base pay only calculation (no bonuses for sick leave)
+  - Visual indicators with red background and red "SICK" badge
+- **Enhanced Statistics**:
+  - Holiday shifts tracking with count and day numbers in Overview section
+  - Sick leave tracking with count and day numbers in Overview section
+  - Split evening bonus tracking (weekday vs Saturday)
+- **Improved User Experience**:
+  - Simplified breakdown view showing only non-zero fields
+  - Better hour formatting (5h instead of 5.00h)
+  - Proper precedence logic: sick leave overrides all other bonuses including holiday pay
+
+### Changed
+
+- **Database Schema**: Added `sick_leave`, `public_holiday` fields to shifts table and `holiday_bonus` to calculations
+- **Calculation Logic**: Updated to handle sick leave precedence and split evening rates
+- **Visual Design**: Color-coded shift types for quick identification
+
+### Technical
+
+- Updated TypeScript interfaces for new fields
+- Enhanced database migrations for backward compatibility
+- Improved shift modification modal with new checkboxes
+
 ## [1.3.6] - 2024-05-09
 
 ### Fixed
