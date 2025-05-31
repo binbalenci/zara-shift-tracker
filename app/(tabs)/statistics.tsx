@@ -102,9 +102,8 @@ interface MonthlyStats {
   totalShifts: number;
   dayBreakdown: DayCount;
   baseEarnings: number;
-  eveningExtra: number;
-  weekendExtra: number;
-  sundayExtra: number;
+  eveningEarnings: number;
+  sundayEarnings: number;
   totalEarnings: number;
   totalHours: number;
 }
@@ -113,7 +112,7 @@ interface ChartData {
   value: number;
   label: string;
   frontColor: string;
-  topLabelComponent?: () => JSX.Element;
+  topLabelComponent?: () => React.ReactNode;
 }
 
 export default function Statistics() {
@@ -123,9 +122,8 @@ export default function Statistics() {
     totalShifts: 0,
     dayBreakdown: {},
     baseEarnings: 0,
-    eveningExtra: 0,
-    weekendExtra: 0,
-    sundayExtra: 0,
+    eveningEarnings: 0,
+    sundayEarnings: 0,
     totalEarnings: 0,
     totalHours: 0,
   });
@@ -155,6 +153,16 @@ export default function Statistics() {
       const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
       const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0);
 
+      // Format dates properly without timezone conversion
+      const firstDayStr = `${firstDay.getFullYear()}-${String(firstDay.getMonth() + 1).padStart(
+        2,
+        "0"
+      )}-${String(firstDay.getDate()).padStart(2, "0")}`;
+      const lastDayStr = `${lastDay.getFullYear()}-${String(lastDay.getMonth() + 1).padStart(
+        2,
+        "0"
+      )}-${String(lastDay.getDate()).padStart(2, "0")}`;
+
       const { data: shifts, error } = await supabase
         .from("shifts")
         .select(
@@ -168,18 +176,20 @@ export default function Statistics() {
             shift_id,
             base_pay,
             evening_extra,
-            weekend_extra,
             sunday_extra,
             total_pay,
-            duration_hours
+            total_hours
           )
         `
         )
-        .gte("date", firstDay.toISOString().split("T")[0])
-        .lte("date", lastDay.toISOString().split("T")[0])
+        .gte("date", firstDayStr)
+        .lte("date", lastDayStr)
         .order("date", { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching shifts:", error);
+        throw error;
+      }
 
       // Initialize day breakdown
       const dayBreakdown: DayCount = {
@@ -193,9 +203,9 @@ export default function Statistics() {
       };
 
       let baseEarnings = 0;
-      let eveningExtra = 0;
-      let weekendExtra = 0;
-      let sundayExtra = 0;
+      let eveningEarnings = 0;
+      let sundayEarnings = 0;
+      let totalEarnings = 0;
       let totalHours = 0;
 
       shifts?.forEach((shift) => {
@@ -207,23 +217,19 @@ export default function Statistics() {
         if (shift.shift_calculations && shift.shift_calculations.length > 0) {
           const calc = shift.shift_calculations[0];
           baseEarnings += calc.base_pay || 0;
-          eveningExtra += calc.evening_extra || 0;
-          weekendExtra += calc.weekend_extra || 0;
-          sundayExtra += calc.sunday_extra || 0;
-          totalHours += calc.duration_hours || 0;
+          eveningEarnings += calc.evening_extra || 0;
+          sundayEarnings += calc.sunday_extra || 0;
+          totalEarnings += calc.total_pay || 0;
+          totalHours += calc.total_hours || 0;
         }
       });
-
-      // Calculate total earnings
-      const totalEarnings = baseEarnings + eveningExtra + weekendExtra + sundayExtra;
 
       setMonthlyStats({
         totalShifts: shifts?.length || 0,
         dayBreakdown,
         baseEarnings,
-        eveningExtra,
-        weekendExtra,
-        sundayExtra,
+        eveningEarnings,
+        sundayEarnings,
         totalEarnings,
         totalHours,
       });
@@ -296,6 +302,16 @@ export default function Statistics() {
       const firstDay = new Date(selectedYear, 0, 1);
       const lastDay = new Date(selectedYear, 11, 31);
 
+      // Format dates properly without timezone conversion
+      const firstDayStr = `${firstDay.getFullYear()}-${String(firstDay.getMonth() + 1).padStart(
+        2,
+        "0"
+      )}-${String(firstDay.getDate()).padStart(2, "0")}`;
+      const lastDayStr = `${lastDay.getFullYear()}-${String(lastDay.getMonth() + 1).padStart(
+        2,
+        "0"
+      )}-${String(lastDay.getDate()).padStart(2, "0")}`;
+
       const { data: calculations, error } = await supabase
         .from("shifts")
         .select(
@@ -306,8 +322,8 @@ export default function Statistics() {
           )
         `
         )
-        .gte("date", firstDay.toISOString().split("T")[0])
-        .lte("date", lastDay.toISOString().split("T")[0]);
+        .gte("date", firstDayStr)
+        .lte("date", lastDayStr);
 
       if (error) throw error;
 
@@ -316,7 +332,8 @@ export default function Statistics() {
         if (shift.shift_calculations && shift.shift_calculations.length > 0) {
           const date = new Date(shift.date);
           const monthName = monthNames[date.getMonth()];
-          monthlyTotals[monthName] += shift.shift_calculations[0].total_pay || 0;
+          const totalPay = shift.shift_calculations[0].total_pay || 0;
+          monthlyTotals[monthName] += totalPay;
         }
       });
 
@@ -382,7 +399,7 @@ export default function Statistics() {
           verticalLinesColor="rgba(0,0,0,0.05)"
           verticalLinesSpacing={30}
           noOfVerticalLines={20}
-          maxValue={1500}
+          maxValue={1800}
           labelWidth={35}
           xAxisLabelTextStyle={{ color: "#757575", fontSize: 11 }}
           renderTooltip={(item: ChartData) => (
@@ -447,29 +464,21 @@ export default function Statistics() {
             <Card.Content>
               <Text style={[styles.cardTitle, { color: "#333" }]}>Earnings Breakdown</Text>
               <View style={styles.statRow}>
-                <Text style={[styles.label, { color: "#666" }]}>Base Earnings</Text>
+                <Text style={[styles.label, { color: "#666" }]}>Base Pay (all hours)</Text>
                 <Text style={[styles.value, { color: "#333" }]}>
                   €{monthlyStats.baseEarnings.toFixed(2)}
                 </Text>
               </View>
               <View style={styles.statRow}>
-                <Text style={[styles.label, { color: "#666" }]}>Evening Extra (after 6 PM)</Text>
+                <Text style={[styles.label, { color: "#666" }]}>Evening Bonus</Text>
                 <Text style={[styles.value, { color: "#333" }]}>
-                  €{monthlyStats.eveningExtra.toFixed(2)}
+                  €{monthlyStats.eveningEarnings.toFixed(2)}
                 </Text>
               </View>
               <View style={styles.statRow}>
-                <Text style={[styles.label, { color: "#666" }]}>
-                  Weekend Extra (Sat after 1 PM)
-                </Text>
+                <Text style={[styles.label, { color: "#666" }]}>Sunday Bonus</Text>
                 <Text style={[styles.value, { color: "#333" }]}>
-                  €{monthlyStats.weekendExtra.toFixed(2)}
-                </Text>
-              </View>
-              <View style={styles.statRow}>
-                <Text style={[styles.label, { color: "#666" }]}>Sunday Extra</Text>
-                <Text style={[styles.value, { color: "#333" }]}>
-                  €{monthlyStats.sundayExtra.toFixed(2)}
+                  €{monthlyStats.sundayEarnings.toFixed(2)}
                 </Text>
               </View>
               <View style={styles.totalRow}>
