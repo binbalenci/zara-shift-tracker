@@ -2,7 +2,7 @@
   "expo": {
     "name": "zara-shift-tracker",
     "slug": "zara-shift-tracker",
-    "version": "1.3.6",
+    "version": "1.5.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "zara-shift-tracker",
@@ -57,14 +57,10 @@
         "projectId": "614958e8-bc6d-45b9-bcdf-b3a67b3798f9"
       },
       "router": {
-        "ignoreRoutes": [
-          "types",
-          "utils",
-          "contexts"
-        ]
+        "ignoreRoutes": ["types", "utils", "contexts"]
       }
     },
-    "runtimeVersion": "1.3.6",
+    "runtimeVersion": "1.5.0",
     "updates": {
       "url": "https://u.expo.dev/614958e8-bc6d-45b9-bcdf-b3a67b3798f9"
     }

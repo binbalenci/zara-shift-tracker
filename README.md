@@ -22,9 +22,22 @@ Built this bad boy with some pretty cool tech:
 - **React Native + Expo**: For that smooth mobile experience
 - **TypeScript**: Because who doesn't love some type safety?
 - **Supabase**: Our awesome backend-as-a-service
+- **Sentry**: Production-ready error monitoring and crash reporting
 - **React Native Paper**: For those sleek Material Design components
 - **React Native Gifted Charts**: Making those earnings charts look 🔥
 - And a bunch of other neat packages!
+
+## 🛡️ Error Monitoring & Reliability
+
+The app includes comprehensive error monitoring powered by Sentry:
+
+- **Production Error Tracking**: All critical errors are automatically captured and reported
+- **Database Operation Monitoring**: Track failures in shift creation, profile management, and data fetching
+- **Performance Monitoring**: Monitor slow operations and user experience issues
+- **Context-Rich Debugging**: Every error includes detailed context about user actions and app state
+- **Proactive Issue Detection**: Get notified about issues before users report them
+
+This means better reliability, faster bug fixes, and a smoother experience for everyone! 🚀
 
 ## 🏗 System Design
 
@@ -102,6 +115,8 @@ We've got two main tables in Supabase:
 - 🎯 Smart precedence logic (sick leave overrides all bonuses)
 - 🎨 Clean and simplified UI showing only relevant information
 - ✨ Confetti celebration when adding shifts (because why not?)
+- 🛡️ Production-ready error monitoring and crash reporting with Sentry
+- 🔍 Comprehensive debugging context for better issue resolution
 
 ## 🤖 Vibe Coding with Cursor
 

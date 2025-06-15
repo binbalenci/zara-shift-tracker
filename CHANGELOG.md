@@ -1,5 +1,44 @@
 # Changelog
 
+## [1.5.0] - 2024-12-19
+
+### Added
+
+- **Comprehensive Error Monitoring with Sentry**:
+
+  - Production-ready error tracking and monitoring system
+  - Enhanced Logger utility with specialized database operation methods
+  - Critical error logging for all database operations (create, read, update, delete)
+  - Comprehensive error context tracking for debugging user-reported issues
+  - Performance monitoring for slow operations
+  - Environment and context tagging for better error categorization
+
+- **Comprehensive Breadcrumb Tracking**:
+  - Navigation tracking across all main screens (Home, Shifts, Statistics, Settings)
+  - User action breadcrumbs for critical interactions (form submissions, button clicks, data operations)
+  - Chart interaction tracking (bar clicks, year navigation, monthly breakdowns)
+  - CRUD operation flow tracking (create, update, delete shifts and profiles)
+  - Form interaction breadcrumbs (date pickers, time pickers, modal openings)
+  - Data operation success/failure breadcrumbs for complete user journey visibility
+
+### Changed
+
+- **Error Handling**: Replaced all console.error statements with proper Sentry error reporting
+- **Database Operations**: Enhanced error tracking for shift creation, modification, deletion, and profile management
+- **Statistics Processing**: Improved error handling for chart data generation and monthly calculations
+- **Context Tracking**: Added detailed operation context for all critical app functions
+- **User Flow Monitoring**: Comprehensive breadcrumb trails showing user behavior before errors occur
+
+### Technical
+
+- Created new Logger utility with specialized methods for different error types
+- Added database-specific error logging with operation context
+- Implemented critical error flagging for data loss scenarios
+- Enhanced error reporting across all main screens (Home, Shifts, Statistics, Settings)
+- Added comprehensive error context for debugging production issues
+- Implemented breadcrumb tracking for user actions, navigation, and data operations
+- Enhanced user flow visibility with detailed interaction logging
+
 ## [1.4.0] - 2024-12-19
 
 ### Added
