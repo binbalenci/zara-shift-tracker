@@ -17,6 +17,7 @@ import { supabase } from "../utils/supabaseClient";
 import { SalaryProfile } from "../types";
 import { useSalaryProfiles } from "../contexts/SalaryProfileContext";
 import { useFonts, DancingScript_400Regular } from "@expo-google-fonts/dancing-script";
+import { Logger } from "../utils/logger";
 
 const styles = StyleSheet.create({
   container: {
@@ -215,7 +216,18 @@ export default function Settings() {
         },
       ]);
 
-      if (error) throw error;
+      if (error) {
+        Logger.error(error, {
+          operation: "create_salary_profile",
+          profile_data: {
+            base_hourly_rate: parseFloat(baseRate),
+            evening_extra: parseFloat(eveningExtra),
+            sunday_extra: parseFloat(sundayExtra),
+            start_date: startDate.toLocaleDateString("en-CA"),
+          },
+        });
+        throw error;
+      }
 
       Toast.show({
         type: "success",
@@ -227,6 +239,15 @@ export default function Settings() {
       resetForm();
       refreshProfiles();
     } catch (error) {
+      Logger.error(error as Error, {
+        operation: "add_salary_profile_complete_flow",
+        form_data: {
+          base_rate: baseRate,
+          evening_extra: eveningExtra,
+          sunday_extra: sundayExtra,
+          start_date: startDate.toISOString(),
+        },
+      });
       Toast.show({
         type: "error",
         text1: "Error",
@@ -252,7 +273,19 @@ export default function Settings() {
         })
         .eq("id", selectedProfile.id);
 
-      if (error) throw error;
+      if (error) {
+        Logger.error(error, {
+          operation: "update_salary_profile",
+          profile_id: selectedProfile.id,
+          updated_data: {
+            base_hourly_rate: parseFloat(baseRate),
+            evening_extra: parseFloat(eveningExtra),
+            weekend_extra: parseFloat(weekendExtra),
+            sunday_extra: parseFloat(sundayExtra),
+          },
+        });
+        throw error;
+      }
 
       Toast.show({
         type: "success",
@@ -264,6 +297,16 @@ export default function Settings() {
       resetForm();
       refreshProfiles();
     } catch (error) {
+      Logger.error(error as Error, {
+        operation: "update_salary_profile_complete_flow",
+        profile_id: selectedProfile?.id,
+        form_data: {
+          base_rate: baseRate,
+          evening_extra: eveningExtra,
+          weekend_extra: weekendExtra,
+          sunday_extra: sundayExtra,
+        },
+      });
       Toast.show({
         type: "error",
         text1: "Error",
@@ -281,7 +324,14 @@ export default function Settings() {
         .delete()
         .eq("id", selectedProfile.id);
 
-      if (error) throw error;
+      if (error) {
+        Logger.error(error, {
+          operation: "delete_salary_profile",
+          profile_id: selectedProfile.id,
+          profile_name: selectedProfile.name,
+        });
+        throw error;
+      }
 
       Toast.show({
         type: "success",
@@ -293,6 +343,11 @@ export default function Settings() {
       setSelectedProfile(null);
       refreshProfiles();
     } catch (error) {
+      Logger.error(error as Error, {
+        operation: "delete_salary_profile_complete_flow",
+        profile_id: selectedProfile?.id,
+        profile_name: selectedProfile?.name,
+      });
       Toast.show({
         type: "error",
         text1: "Error",

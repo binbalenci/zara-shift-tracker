@@ -18,6 +18,7 @@ import { supabase } from "../utils/supabaseClient";
 import { useSalaryProfiles } from "../contexts/SalaryProfileContext";
 import { SalaryProfile } from "../types";
 import Confetti from "react-native-simple-confetti";
+import { Logger } from "../utils/logger";
 
 const confettiImages = [
   require("../../assets/confetti/Subject 1.png"),
@@ -281,7 +282,14 @@ export default function Home() {
         .select()
         .single();
 
-      if (shiftError) throw shiftError;
+      if (shiftError) {
+        Logger.error(shiftError, {
+          operation: "create_shift_insert",
+          shift_data: newShift,
+          profile_id: profile.id,
+        });
+        throw shiftError;
+      }
 
       // Calculate the shift earnings
       const shiftStart = new Date(`${newShift.date} ${newShift.start_time}`);
@@ -348,7 +356,18 @@ export default function Home() {
         total_pay: totalPay,
       });
 
-      if (calcError) throw calcError;
+      if (calcError) {
+        Logger.error(calcError, {
+          operation: "create_shift_calculation",
+          shift_id: createdShift.id,
+          calculation_data: {
+            total_hours: totalHours,
+            paid_hours: paidHours,
+            total_pay: totalPay,
+          },
+        });
+        throw calcError;
+      }
 
       // Show success message and confetti
       Toast.show({
@@ -365,7 +384,13 @@ export default function Home() {
       setStartTime(undefined);
       setEndTime(undefined);
     } catch (error) {
-      console.error("Error adding shift:", error);
+      Logger.error(error as Error, {
+        operation: "add_shift_complete_flow",
+        date: date.toISOString(),
+        start_time: startTime?.toISOString(),
+        end_time: endTime?.toISOString(),
+        context: "shift_creation_failed",
+      });
       Toast.show({
         type: "error",
         text1: "Error",

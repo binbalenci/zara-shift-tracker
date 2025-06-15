@@ -15,6 +15,7 @@ import { supabase } from "../utils/supabaseClient";
 import { Shift, ShiftCalculation } from "../types";
 import { useSalaryProfiles } from "../contexts/SalaryProfileContext";
 import { getShifts, deleteShift } from "../utils/shiftService";
+import { Logger } from "../utils/logger";
 
 const styles = StyleSheet.create({
   container: {
@@ -198,7 +199,13 @@ export default function Shifts() {
         .select("*")
         .order("date", { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        Logger.error(error, {
+          operation: "fetch_shifts_with_calculations",
+          query: "select_shifts_ordered_by_date",
+        });
+        throw error;
+      }
       setShifts(data || []);
 
       // Fetch shift calculations for all shifts
@@ -207,7 +214,13 @@ export default function Shifts() {
         .select("*")
         .in("shift_id", data?.map((shift) => shift.id) || []);
 
-      if (calcError) throw calcError;
+      if (calcError) {
+        Logger.error(calcError, {
+          operation: "fetch_shift_calculations",
+          shift_ids: data?.map((shift) => shift.id) || [],
+        });
+        throw calcError;
+      }
 
       const calculationsMap = (calculations || []).reduce((acc, calc) => {
         acc[calc.shift_id] = calc;
@@ -216,7 +229,10 @@ export default function Shifts() {
 
       setShiftCalculations(calculationsMap);
     } catch (error) {
-      console.error("Error fetching shifts:", error);
+      Logger.error(error as Error, {
+        operation: "fetch_shifts_complete_flow",
+        context: "shifts_screen_initialization",
+      });
       Toast.show({
         type: "error",
         text1: "Error",
@@ -272,7 +288,18 @@ export default function Shifts() {
         })
         .eq("id", selectedShift.id);
 
-      if (shiftError) throw shiftError;
+      if (shiftError) {
+        Logger.error(shiftError, {
+          operation: "update_shift",
+          shift_id: selectedShift.id,
+          updated_data: {
+            date: editDate.toLocaleDateString("en-CA"),
+            sick_leave: editSickLeave,
+            public_holiday: editPublicHoliday,
+          },
+        });
+        throw shiftError;
+      }
 
       // Calculate new earnings
       const shiftStart = new Date(
@@ -371,7 +398,17 @@ export default function Shifts() {
         })
         .eq("shift_id", selectedShift.id);
 
-      if (calcError) throw calcError;
+      if (calcError) {
+        Logger.error(calcError, {
+          operation: "update_shift_calculation",
+          shift_id: selectedShift.id,
+          calculation_data: {
+            total_hours: totalHours,
+            total_pay: totalPay,
+          },
+        });
+        throw calcError;
+      }
 
       Toast.show({
         type: "success",
@@ -382,6 +419,15 @@ export default function Shifts() {
       setShowModifyModal(false);
       fetchShifts();
     } catch (error) {
+      Logger.error(error as Error, {
+        operation: "modify_shift_complete_flow",
+        shift_id: selectedShift?.id,
+        edit_data: {
+          date: editDate?.toISOString(),
+          sick_leave: editSickLeave,
+          public_holiday: editPublicHoliday,
+        },
+      });
       Toast.show({
         type: "error",
         text1: "Error",
@@ -396,7 +442,14 @@ export default function Shifts() {
     try {
       const { error } = await supabase.from("shifts").delete().eq("id", selectedShift.id);
 
-      if (error) throw error;
+      if (error) {
+        Logger.error(error, {
+          operation: "delete_shift",
+          shift_id: selectedShift.id,
+          shift_date: selectedShift.date,
+        });
+        throw error;
+      }
 
       Toast.show({
         type: "success",
@@ -407,6 +460,11 @@ export default function Shifts() {
       setShowDeleteModal(false);
       fetchShifts();
     } catch (error) {
+      Logger.error(error as Error, {
+        operation: "delete_shift_complete_flow",
+        shift_id: selectedShift?.id,
+        shift_date: selectedShift?.date,
+      });
       Toast.show({
         type: "error",
         text1: "Error",
@@ -794,7 +852,9 @@ export default function Shifts() {
                 </View>
                 {selectedShift.sick_leave && (
                   <View style={styles.breakdownRow}>
-                    <Text style={[styles.breakdownLabel, { color: "#D32F2F", fontWeight: "bold" }]}>Sick Leave:</Text>
+                    <Text style={[styles.breakdownLabel, { color: "#D32F2F", fontWeight: "bold" }]}>
+                      Sick Leave:
+                    </Text>
                     <Text style={[styles.breakdownValue, { color: "#D32F2F", fontWeight: "bold" }]}>
                       Base pay only
                     </Text>
@@ -802,7 +862,9 @@ export default function Shifts() {
                 )}
                 {selectedShift.public_holiday && !selectedShift.sick_leave && (
                   <View style={styles.breakdownRow}>
-                    <Text style={[styles.breakdownLabel, { color: "#FF9800", fontWeight: "bold" }]}>Public Holiday:</Text>
+                    <Text style={[styles.breakdownLabel, { color: "#FF9800", fontWeight: "bold" }]}>
+                      Public Holiday:
+                    </Text>
                     <Text style={[styles.breakdownValue, { color: "#FF9800", fontWeight: "bold" }]}>
                       Double pay
                     </Text>

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { supabase } from "../utils/supabaseClient";
 import { SalaryProfile } from "../types";
+import { Logger } from "../utils/logger";
 
 interface SalaryProfileContextType {
   profiles: SalaryProfile[];
@@ -35,7 +36,10 @@ export const SalaryProfileProvider: React.FC<{ children: React.ReactNode }> = ({
         .single();
 
       if (testError) {
-        console.error("Supabase connection test failed:", testError);
+        Logger.error(testError, {
+          operation: "supabase_connection_test",
+          table: "salary_profiles",
+        });
         throw testError;
       }
       console.log("Supabase connection successful, count:", testData);
@@ -46,7 +50,10 @@ export const SalaryProfileProvider: React.FC<{ children: React.ReactNode }> = ({
         .order("start_date", { ascending: false });
 
       if (error) {
-        console.error("Supabase query error:", error);
+        Logger.error(error, {
+          operation: "fetch_salary_profiles",
+          query: "select_all_profiles_ordered_by_start_date",
+        });
         throw error;
       }
 
@@ -54,7 +61,10 @@ export const SalaryProfileProvider: React.FC<{ children: React.ReactNode }> = ({
       setProfiles(data || []);
       setError(null);
     } catch (err) {
-      console.error("Error in fetchProfiles:", err);
+      Logger.error(err as Error, {
+        operation: "salary_profile_context_fetch",
+        context: "profile_provider_initialization",
+      });
       setError(err instanceof Error ? err.message : "Failed to fetch salary profiles");
     } finally {
       setLoading(false);

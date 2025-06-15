@@ -14,6 +14,14 @@ import { BarChart } from "react-native-gifted-charts";
 import { supabase } from "../utils/supabaseClient";
 import { Shift, ShiftCalculation } from "../types";
 import { useSalaryProfiles } from "../contexts/SalaryProfileContext";
+import { Logger } from "../utils/logger";
+
+interface ChartData {
+  value: number;
+  label: string;
+  frontColor: string;
+  topLabelComponent?: () => React.ReactNode;
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -111,13 +119,6 @@ interface MonthlyStats {
   sickLeaveShifts: { count: number; days: number[] };
 }
 
-interface ChartData {
-  value: number;
-  label: string;
-  frontColor: string;
-  topLabelComponent?: () => React.ReactNode;
-}
-
 export default function Statistics() {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(new Date());
@@ -182,13 +183,15 @@ export default function Statistics() {
   };
 
   const fetchMonthlyStats = async (date: Date) => {
-    try {
-      // Ensure we have a valid date
-      if (!(date instanceof Date) || isNaN(date.getTime())) {
-        console.error("Invalid date provided to fetchMonthlyStats:", date);
-        return;
-      }
+    if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
+      Logger.warning("Invalid date provided to fetchMonthlyStats", {
+        date: date?.toString(),
+        operation: "fetch_monthly_stats",
+      });
+      return;
+    }
 
+    try {
       // Get the first and last day of the selected month
       const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
       const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0);
@@ -231,7 +234,15 @@ export default function Statistics() {
         .order("date", { ascending: true });
 
       if (error) {
-        console.error("Error fetching shifts:", error);
+        Logger.error(error, {
+          operation: "fetch_monthly_shifts",
+          year: date.getFullYear(),
+          month: date.getMonth() + 1,
+          date_range: {
+            start: firstDay.toISOString(),
+            end: lastDay.toISOString(),
+          },
+        });
         throw error;
       }
 
@@ -303,7 +314,13 @@ export default function Statistics() {
         sickLeaveShifts: { count: sickLeaveShiftDays.length, days: sickLeaveShiftDays },
       });
     } catch (error) {
-      console.error("Error fetching monthly stats:", error);
+      Logger.error(error as Error, {
+        operation: "fetch_monthly_stats_complete_flow",
+        date: date.toISOString(),
+        year: date.getFullYear(),
+        month: date.getMonth() + 1,
+      });
+      setRefreshing(false);
     }
   };
 
@@ -326,13 +343,22 @@ export default function Statistics() {
       ];
       const monthIndex = monthNames.indexOf(item.label);
       if (monthIndex === -1) {
-        console.error("Invalid month label:", item.label);
+        Logger.warning("Invalid month label in bar press", {
+          operation: "handle_bar_press",
+          label: item.label,
+          available_months: monthNames,
+        });
         return;
       }
 
       const newDate = new Date(selectedYear, monthIndex, 1);
       if (!(newDate instanceof Date) || isNaN(newDate.getTime())) {
-        console.error("Invalid date created:", newDate);
+        Logger.error(new Error("Invalid date created in bar press"), {
+          operation: "handle_bar_press",
+          selected_year: selectedYear,
+          month_index: monthIndex,
+          created_date: newDate.toString(),
+        });
         return;
       }
 
@@ -340,7 +366,11 @@ export default function Statistics() {
       setShowBreakdown(true);
       fetchMonthlyStats(newDate);
     } catch (error) {
-      console.error("Error handling bar press:", error);
+      Logger.error(error as Error, {
+        operation: "handle_bar_press_complete_flow",
+        chart_item: item,
+        selected_year: selectedYear,
+      });
     }
   };
 
@@ -420,7 +450,12 @@ export default function Statistics() {
       setChartData(data);
       setMaxChartValue(dynamicMaxValue);
     } catch (error) {
-      console.error("Error fetching chart data:", error);
+      Logger.error(error as Error, {
+        operation: "fetch_chart_data_complete_flow",
+        year: selectedYear,
+        context: "statistics_screen_chart_generation",
+      });
+      setRefreshing(false);
     }
   };
 

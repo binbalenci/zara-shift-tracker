@@ -4,10 +4,10 @@ import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import Toast, { BaseToast, ErrorToast, BaseToastProps } from "react-native-toast-message";
 import { SalaryProfileProvider } from "./contexts/SalaryProfileContext";
 import { PaperProvider } from "react-native-paper";
-import * as Sentry from '@sentry/react-native';
+import * as Sentry from "@sentry/react-native";
 
 Sentry.init({
-  dsn: 'https://c295f37e86c134dc241e4d5f45ab66ee@o4509469360193536.ingest.de.sentry.io/4509469361635408',
+  dsn: "https://c295f37e86c134dc241e4d5f45ab66ee@o4509469360193536.ingest.de.sentry.io/4509469361635408",
 
   // Adds more context data to events (IP address, cookies, user, etc.)
   // For more information, visit: https://docs.sentry.io/platforms/react-native/data-management/data-collected/
