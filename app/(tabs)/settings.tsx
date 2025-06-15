@@ -184,6 +184,11 @@ export default function Settings() {
     DancingScript_400Regular,
   });
 
+  // Add navigation breadcrumb on screen load
+  useEffect(() => {
+    Logger.navigationAction("SettingsScreen");
+  }, []);
+
   const onRefresh = React.useCallback(async () => {
     setRefreshing(true);
     try {
@@ -194,16 +199,34 @@ export default function Settings() {
   }, [refreshProfiles]);
 
   const handleAddProfile = async () => {
-    if (!baseRate || !eveningExtra || !weekendExtra || !sundayExtra) {
+    if (!startDate || !baseRate || !eveningExtra || !sundayExtra) {
+      Logger.userAction("add profile failed - missing fields", {
+        has_start_date: !!startDate,
+        has_base_rate: !!baseRate,
+        has_evening_extra: !!eveningExtra,
+        has_sunday_extra: !!sundayExtra,
+      });
       Toast.show({
-        type: "warning",
-        text1: "Warning",
+        type: "error",
+        text1: "Error",
         text2: "Please fill in all fields",
       });
       return;
     }
 
+    Logger.userAction("started profile creation", {
+      base_rate: baseRate,
+      evening_extra: eveningExtra,
+      sunday_extra: sundayExtra,
+      start_date: startDate.toISOString(),
+    });
+
     try {
+      Logger.dataAction("creating salary profile", {
+        base_hourly_rate: parseFloat(baseRate),
+        start_date: startDate.toLocaleDateString("en-CA"),
+      });
+
       const { error } = await supabase.from("salary_profiles").insert([
         {
           name: `Rate from ${startDate.toLocaleDateString()}`,
@@ -228,6 +251,16 @@ export default function Settings() {
         });
         throw error;
       }
+
+      Logger.dataAction("salary profile created successfully", {
+        base_hourly_rate: parseFloat(baseRate),
+        start_date: startDate.toLocaleDateString("en-CA"),
+      });
+
+      Logger.userAction("completed profile creation successfully", {
+        base_rate: baseRate,
+        start_date: startDate.toLocaleDateString("en-CA"),
+      });
 
       Toast.show({
         type: "success",
@@ -258,10 +291,27 @@ export default function Settings() {
 
   const handleUpdateProfile = async () => {
     if (!selectedProfile || !baseRate || !eveningExtra || !weekendExtra || !sundayExtra) {
+      Logger.userAction("update profile failed - missing data", {
+        has_selected_profile: !!selectedProfile,
+        profile_id: selectedProfile?.id,
+      });
       return;
     }
 
+    Logger.userAction("started profile update", {
+      profile_id: selectedProfile.id,
+      base_rate: baseRate,
+      evening_extra: eveningExtra,
+      weekend_extra: weekendExtra,
+      sunday_extra: sundayExtra,
+    });
+
     try {
+      Logger.dataAction("updating salary profile", {
+        profile_id: selectedProfile.id,
+        base_hourly_rate: parseFloat(baseRate),
+      });
+
       const { error } = await supabase
         .from("salary_profiles")
         .update({
@@ -286,6 +336,14 @@ export default function Settings() {
         });
         throw error;
       }
+
+      Logger.dataAction("salary profile updated successfully", {
+        profile_id: selectedProfile.id,
+      });
+
+      Logger.userAction("completed profile update successfully", {
+        profile_id: selectedProfile.id,
+      });
 
       Toast.show({
         type: "success",
@@ -318,7 +376,17 @@ export default function Settings() {
   const handleDeleteProfile = async () => {
     if (!selectedProfile) return;
 
+    Logger.userAction("started profile deletion", {
+      profile_id: selectedProfile.id,
+      profile_name: selectedProfile.name,
+      base_rate: selectedProfile.base_hourly_rate,
+    });
+
     try {
+      Logger.dataAction("deleting salary profile", {
+        profile_id: selectedProfile.id,
+      });
+
       const { error } = await supabase
         .from("salary_profiles")
         .delete()
@@ -332,6 +400,15 @@ export default function Settings() {
         });
         throw error;
       }
+
+      Logger.dataAction("salary profile deleted successfully", {
+        profile_id: selectedProfile.id,
+        profile_name: selectedProfile.name,
+      });
+
+      Logger.userAction("completed profile deletion successfully", {
+        profile_id: selectedProfile.id,
+      });
 
       Toast.show({
         type: "success",
@@ -368,6 +445,12 @@ export default function Settings() {
   const handleEditProfile = (profile: SalaryProfile) => {
     if (!profile) return;
 
+    Logger.userAction("opened profile edit modal", {
+      profile_id: profile.id,
+      profile_name: profile.name,
+      base_rate: profile.base_hourly_rate,
+    });
+
     setSelectedProfile(profile);
     setStartDate(profile.start_date ? new Date(profile.start_date) : new Date());
     setBaseRate(profile.base_hourly_rate?.toString() || "");
@@ -395,6 +478,7 @@ export default function Settings() {
       <TouchableOpacity
         style={styles.addButton}
         onPress={() => {
+          Logger.userAction("clicked add profile button");
           resetForm();
           setShowAddModal(true);
         }}
@@ -413,12 +497,25 @@ export default function Settings() {
             </Text>
           </View>
           <View style={styles.buttonContainer}>
-            <TouchableOpacity style={styles.modifyButton} onPress={() => handleEditProfile(item)}>
+            <TouchableOpacity
+              style={styles.modifyButton}
+              onPress={() => {
+                Logger.userAction("clicked modify profile button", {
+                  profile_id: item.id,
+                  profile_name: item.name,
+                });
+                handleEditProfile(item);
+              }}
+            >
               <Text style={styles.buttonText}>Modify</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.deleteButton}
               onPress={() => {
+                Logger.userAction("clicked delete profile button", {
+                  profile_id: item.id,
+                  profile_name: item.name,
+                });
                 setSelectedProfile(item);
                 setShowDeleteModal(true);
               }}

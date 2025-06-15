@@ -140,6 +140,11 @@ export default function Statistics() {
   const [showBreakdown, setShowBreakdown] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  // Add navigation breadcrumb on screen load
+  useEffect(() => {
+    Logger.navigationAction("StatisticsScreen");
+  }, []);
+
   // Calculate responsive chart dimensions
   const screenWidth = Dimensions.get("window").width;
   const isDesktop = screenWidth > 768; // Tablet/desktop breakpoint
@@ -325,6 +330,12 @@ export default function Statistics() {
   };
 
   const handleBarPress = (item: ChartData) => {
+    Logger.userAction("clicked chart bar", {
+      month: item.label,
+      value: item.value,
+      selected_year: selectedYear,
+    });
+
     try {
       // Parse the month and create a new date
       const monthNames = [
@@ -465,7 +476,15 @@ export default function Statistics() {
   }, [selectedMonth, selectedYear]);
 
   const navigateYear = (direction: "prev" | "next") => {
-    setSelectedYear((prev) => (direction === "prev" ? prev - 1 : prev + 1));
+    const newYear = direction === "prev" ? selectedYear - 1 : selectedYear + 1;
+
+    Logger.userAction(`navigated to ${direction === "prev" ? "previous" : "next"} year`, {
+      from_year: selectedYear,
+      to_year: newYear,
+      direction: direction,
+    });
+
+    setSelectedYear(newYear);
   };
 
   return (
@@ -477,11 +496,27 @@ export default function Statistics() {
 
       {/* Year Navigator */}
       <View style={styles.monthNavigator}>
-        <TouchableOpacity onPress={() => navigateYear("prev")} style={styles.arrowButton}>
+        <TouchableOpacity
+          onPress={() => {
+            Logger.userAction("clicked previous year button", {
+              current_year: selectedYear,
+            });
+            navigateYear("prev");
+          }}
+          style={styles.arrowButton}
+        >
           <MaterialIcons name="chevron-left" size={30} color="#2196F3" />
         </TouchableOpacity>
         <Text style={styles.monthText}>{selectedYear}</Text>
-        <TouchableOpacity onPress={() => navigateYear("next")} style={styles.arrowButton}>
+        <TouchableOpacity
+          onPress={() => {
+            Logger.userAction("clicked next year button", {
+              current_year: selectedYear,
+            });
+            navigateYear("next");
+          }}
+          style={styles.arrowButton}
+        >
           <MaterialIcons name="chevron-right" size={30} color="#2196F3" />
         </TouchableOpacity>
       </View>

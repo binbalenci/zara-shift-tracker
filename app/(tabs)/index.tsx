@@ -238,12 +238,26 @@ export default function Home() {
     );
   };
 
+  // Add navigation breadcrumb on screen load
+  useEffect(() => {
+    Logger.navigationAction("HomeScreen");
+  }, []);
+
   const handleAddOrUpdateShift = async () => {
     if (!isValid) return;
+
+    Logger.userAction("started shift creation", {
+      date: date.toISOString(),
+      has_start_time: !!startTime,
+      has_end_time: !!endTime,
+    });
 
     try {
       const profile = await getSalaryProfileForDate(date);
       if (!profile) {
+        Logger.userAction("shift creation failed - no profile", {
+          date: date.toISOString(),
+        });
         Toast.show({
           type: "error",
           text1: "Error",
@@ -251,6 +265,11 @@ export default function Home() {
         });
         return;
       }
+
+      Logger.dataAction("creating shift record", {
+        profile_id: profile.id,
+        date: date.toLocaleDateString("en-CA"),
+      });
 
       // Create the shift first
       const newShift = {
@@ -290,6 +309,10 @@ export default function Home() {
         });
         throw shiftError;
       }
+
+      Logger.dataAction("shift record created successfully", {
+        shift_id: createdShift.id,
+      });
 
       // Calculate the shift earnings
       const shiftStart = new Date(`${newShift.date} ${newShift.start_time}`);
@@ -338,6 +361,12 @@ export default function Home() {
       const totalPay =
         basePay + weekdayEveningBonus + saturdayEveningBonus + sundayBonus + holidayBonus;
 
+      Logger.dataAction("creating shift calculation", {
+        shift_id: createdShift.id,
+        total_pay: totalPay,
+        total_hours: totalHours,
+      });
+
       // Create shift calculation record with new split evening fields
       const { error: calcError } = await supabase.from("shift_calculations").insert({
         shift_id: createdShift.id,
@@ -368,6 +397,17 @@ export default function Home() {
         });
         throw calcError;
       }
+
+      Logger.dataAction("shift calculation created successfully", {
+        shift_id: createdShift.id,
+        total_pay: totalPay,
+      });
+
+      Logger.userAction("completed shift creation successfully", {
+        shift_id: createdShift.id,
+        total_pay: totalPay,
+        total_hours: totalHours,
+      });
 
       // Show success message and confetti
       Toast.show({
@@ -472,7 +512,13 @@ export default function Home() {
         <Text style={styles.title}>Log a Shift</Text>
 
         {/* Date Picker Row */}
-        <TouchableOpacity style={styles.row} onPress={() => setShowDatePicker(true)}>
+        <TouchableOpacity
+          style={styles.row}
+          onPress={() => {
+            Logger.userAction("opened date picker");
+            setShowDatePicker(true);
+          }}
+        >
           <View style={styles.rowLabel}>
             <Text style={styles.labelText}>Date</Text>
             <Text style={styles.valueText}>
@@ -488,7 +534,13 @@ export default function Home() {
         </TouchableOpacity>
 
         {/* Start Time Row */}
-        <TouchableOpacity style={styles.row} onPress={() => setShowStartTimePicker(true)}>
+        <TouchableOpacity
+          style={styles.row}
+          onPress={() => {
+            Logger.userAction("opened start time picker");
+            setShowStartTimePicker(true);
+          }}
+        >
           <View style={styles.rowLabel}>
             <Text style={styles.labelText}>Start Time</Text>
             <Text style={styles.valueText}>
@@ -505,7 +557,13 @@ export default function Home() {
         </TouchableOpacity>
 
         {/* End Time Row */}
-        <TouchableOpacity style={styles.row} onPress={() => setShowEndTimePicker(true)}>
+        <TouchableOpacity
+          style={styles.row}
+          onPress={() => {
+            Logger.userAction("opened end time picker");
+            setShowEndTimePicker(true);
+          }}
+        >
           <View style={styles.rowLabel}>
             <Text style={styles.labelText}>End Time</Text>
             <Text style={styles.valueText}>
@@ -523,7 +581,14 @@ export default function Home() {
 
         {/* Add Button */}
         <TouchableOpacity
-          onPress={handleAddOrUpdateShift}
+          onPress={() => {
+            Logger.userAction("clicked add shift button", {
+              is_valid: isValid,
+              has_start_time: !!startTime,
+              has_end_time: !!endTime,
+            });
+            handleAddOrUpdateShift();
+          }}
           style={{
             backgroundColor: isValid ? "#4CAF50" : "#9E9E9E",
             padding: 15,

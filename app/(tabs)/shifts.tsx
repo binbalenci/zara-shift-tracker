@@ -192,8 +192,19 @@ export default function Shifts() {
   const [editSickLeave, setEditSickLeave] = useState<boolean>(false);
   const [editPublicHoliday, setEditPublicHoliday] = useState<boolean>(false);
 
+  // Add navigation breadcrumb on screen load
+  useEffect(() => {
+    Logger.navigationAction("ShiftsScreen");
+  }, []);
+
+  useEffect(() => {
+    Logger.dataAction("starting shifts fetch", { context: "screen_initialization" });
+    fetchShifts();
+  }, []);
+
   const fetchShifts = async () => {
     try {
+      setLoading(true);
       const { data, error } = await supabase
         .from("shifts")
         .select("*")
@@ -208,6 +219,10 @@ export default function Shifts() {
       }
       setShifts(data || []);
 
+      Logger.dataAction("shifts fetched successfully", {
+        count: data?.length || 0,
+      });
+
       // Fetch shift calculations for all shifts
       const { data: calculations, error: calcError } = await supabase
         .from("shift_calculations")
@@ -221,6 +236,10 @@ export default function Shifts() {
         });
         throw calcError;
       }
+
+      Logger.dataAction("shift calculations fetched successfully", {
+        count: calculations?.length || 0,
+      });
 
       const calculationsMap = (calculations || []).reduce((acc, calc) => {
         acc[calc.shift_id] = calc;
@@ -243,17 +262,25 @@ export default function Shifts() {
     }
   };
 
-  useEffect(() => {
-    fetchShifts();
-  }, []);
-
   const handleModifyShift = async () => {
     if (!selectedShift || !editDate || !editStartTime || !editEndTime) return;
+
+    Logger.userAction("started shift modification", {
+      shift_id: selectedShift.id,
+      original_date: selectedShift.date,
+      new_date: editDate.toISOString(),
+      sick_leave: editSickLeave,
+      public_holiday: editPublicHoliday,
+    });
 
     try {
       // Get the applicable salary profile
       const profile = await getSalaryProfileForDate(editDate);
       if (!profile) {
+        Logger.userAction("shift modification failed - no profile", {
+          shift_id: selectedShift.id,
+          date: editDate.toISOString(),
+        });
         Toast.show({
           type: "error",
           text1: "Error",
@@ -261,6 +288,11 @@ export default function Shifts() {
         });
         return;
       }
+
+      Logger.dataAction("updating shift record", {
+        shift_id: selectedShift.id,
+        profile_id: profile.id,
+      });
 
       // Update the shift with sick leave and public holiday status
       const { error: shiftError } = await supabase
@@ -300,6 +332,10 @@ export default function Shifts() {
         });
         throw shiftError;
       }
+
+      Logger.dataAction("shift record updated successfully", {
+        shift_id: selectedShift.id,
+      });
 
       // Calculate new earnings
       const shiftStart = new Date(
@@ -379,6 +415,11 @@ export default function Shifts() {
       const totalPay =
         basePay + weekdayEveningBonus + saturdayEveningBonus + sundayBonus + holidayBonus;
 
+      Logger.dataAction("updating shift calculation", {
+        shift_id: selectedShift.id,
+        new_total_pay: totalPay,
+      });
+
       // Update shift calculation with new split evening fields
       const { error: calcError } = await supabase
         .from("shift_calculations")
@@ -410,6 +451,16 @@ export default function Shifts() {
         throw calcError;
       }
 
+      Logger.dataAction("shift calculation updated successfully", {
+        shift_id: selectedShift.id,
+        total_pay: totalPay,
+      });
+
+      Logger.userAction("completed shift modification successfully", {
+        shift_id: selectedShift.id,
+        total_pay: totalPay,
+      });
+
       Toast.show({
         type: "success",
         text1: "Success",
@@ -439,6 +490,11 @@ export default function Shifts() {
   const handleDeleteShift = async () => {
     if (!selectedShift) return;
 
+    Logger.userAction("started shift deletion", {
+      shift_id: selectedShift.id,
+      shift_date: selectedShift.date,
+    });
+
     try {
       const { error } = await supabase.from("shifts").delete().eq("id", selectedShift.id);
 
@@ -451,6 +507,15 @@ export default function Shifts() {
         throw error;
       }
 
+      Logger.dataAction("shift deleted successfully", {
+        shift_id: selectedShift.id,
+        shift_date: selectedShift.date,
+      });
+
+      Logger.userAction("completed shift deletion successfully", {
+        shift_id: selectedShift.id,
+      });
+
       Toast.show({
         type: "success",
         text1: "Success",
@@ -458,6 +523,7 @@ export default function Shifts() {
       });
 
       setShowDeleteModal(false);
+      setSelectedShift(null);
       fetchShifts();
     } catch (error) {
       Logger.error(error as Error, {
@@ -474,10 +540,14 @@ export default function Shifts() {
   };
 
   const openModifyModal = (shift: Shift) => {
+    Logger.userAction("opened shift modification modal", {
+      shift_id: shift.id,
+      shift_date: shift.date,
+    });
     setSelectedShift(shift);
     setEditDate(new Date(shift.date));
-    setEditStartTime(new Date(`2000-01-01T${shift.start_time}`));
-    setEditEndTime(new Date(`2000-01-01T${shift.end_time}`));
+    setEditStartTime(new Date(`${shift.date} ${shift.start_time}`));
+    setEditEndTime(new Date(`${shift.date} ${shift.end_time}`));
     setEditSickLeave(shift.sick_leave || false);
     setEditPublicHoliday(shift.public_holiday || false);
     setShowModifyModal(true);
@@ -559,12 +629,25 @@ export default function Shifts() {
           )}
         </View>
         <View style={styles.buttonContainer}>
-          <TouchableOpacity style={styles.modifyButton} onPress={() => openModifyModal(item)}>
+          <TouchableOpacity
+            style={styles.modifyButton}
+            onPress={() => {
+              Logger.userAction("clicked modify shift button", {
+                shift_id: item.id,
+                shift_date: item.date,
+              });
+              openModifyModal(item);
+            }}
+          >
             <Text style={styles.buttonText}>Modify</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.deleteButton}
             onPress={() => {
+              Logger.userAction("clicked delete shift button", {
+                shift_id: item.id,
+                shift_date: item.date,
+              });
               setSelectedShift(item);
               setShowDeleteModal(true);
             }}
