@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.5.1] - 2024-12-19
+
+### Added
+
+- **Average Salary Calculation in Statistics Overview**:
+  - Added "Average Salary" statistic to the monthly overview card
+  - Calculates total earnings divided by total hours for the selected month
+  - Displays as €X.X/h format with 1 decimal place precision
+  - Handles edge cases where total hours is zero to prevent division by zero
+  - Provides users with insight into their hourly earnings efficiency
+
 ## [1.5.0] - 2024-12-19
 
 ### Added
