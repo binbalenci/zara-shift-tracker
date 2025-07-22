@@ -417,7 +417,7 @@ export default function Home() {
       });
       setConfettiImage(getRandomConfettiImage());
       setShowConfetti(true);
-      setTimeout(() => setShowConfetti(false), 5000);
+      setTimeout(() => setShowConfetti(false), 3000);
 
       // Reset form
       setDate(new Date());
