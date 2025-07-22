@@ -657,6 +657,16 @@ export default function Statistics() {
                   </Text>
                 </View>
               )}
+              <View style={styles.statRow}>
+                <Text style={[styles.label, { color: "#666" }]}>Average Salary</Text>
+                <Text style={[styles.value, { color: "#333" }]}>
+                  €
+                  {monthlyStats.totalHours > 0
+                    ? (monthlyStats.totalEarnings / monthlyStats.totalHours).toFixed(1)
+                    : "0.0"}
+                  /h
+                </Text>
+              </View>
             </Card.Content>
           </Card>
 
