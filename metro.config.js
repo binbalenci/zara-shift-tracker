@@ -4,7 +4,7 @@ const {
 
 const config = getSentryExpoConfig(__dirname);
 
-// Disable the new package.json exports feature to fix Supabase compatibility
-config.resolver.unstable_enablePackageExports = false;
+// Ensure package.json exports remain enabled for SDK 54 (required for metro-runtime resolution)
+config.resolver.unstable_enablePackageExports = true;
 
 module.exports = config;
