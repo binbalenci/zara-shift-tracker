@@ -44,7 +44,7 @@
         "@sentry/react-native/expo",
         {
           "url": "https://sentry.io/",
-          "project": "react-native",
+          "project": "zara-shift-tracker",
           "organization": "benjamin-kz"
         }
       ]
