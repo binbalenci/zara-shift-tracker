@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.5.2] - 2024-12-19
+
+### Changed
+
+- **Sentry Project Configuration**:
+  - Updated Sentry project slug from "react-native" to "zara-shift-tracker"
+  - Aligned project naming with app identity for better organization
+  - Updated app.json configuration to reflect new project slug
+  - Maintained all existing error monitoring and logging functionality
+
+### Technical
+
+- Updated Expo plugin configuration in app.json
+- Ensured consistent project naming across all monitoring tools
+- No breaking changes to existing Sentry integration
+
 ## [1.5.1] - 2024-12-19
 
 ### Added

@@ -2,7 +2,7 @@
   "expo": {
     "name": "zara-shift-tracker",
     "slug": "zara-shift-tracker",
-    "version": "1.5.1",
+    "version": "1.5.2",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "zara-shift-tracker",
@@ -60,7 +60,7 @@
         "ignoreRoutes": ["types", "utils", "contexts"]
       }
     },
-    "runtimeVersion": "1.5.0",
+    "runtimeVersion": "1.5.2",
     "updates": {
       "url": "https://u.expo.dev/614958e8-bc6d-45b9-bcdf-b3a67b3798f9"
     }

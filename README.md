@@ -22,7 +22,7 @@ Built this bad boy with some pretty cool tech:
 - **React Native + Expo**: For that smooth mobile experience
 - **TypeScript**: Because who doesn't love some type safety?
 - **Supabase**: Our awesome backend-as-a-service
-- **Sentry**: Production-ready error monitoring and crash reporting
+- **Sentry**: Production-ready error monitoring and crash reporting (configured for zara-shift-tracker project)
 - **React Native Paper**: For those sleek Material Design components
 - **React Native Gifted Charts**: Making those earnings charts look 🔥
 - And a bunch of other neat packages!
@@ -31,11 +31,12 @@ Built this bad boy with some pretty cool tech:
 
 The app includes comprehensive error monitoring powered by Sentry:
 
-- **Production Error Tracking**: All critical errors are automatically captured and reported
+- **Production Error Tracking**: All critical errors are automatically captured and reported to the `zara-shift-tracker` project
 - **Database Operation Monitoring**: Track failures in shift creation, profile management, and data fetching
 - **Performance Monitoring**: Monitor slow operations and user experience issues
 - **Context-Rich Debugging**: Every error includes detailed context about user actions and app state
 - **Proactive Issue Detection**: Get notified about issues before users report them
+- **Session Replay**: Capture user sessions to better understand issues and user behavior
 
 This means better reliability, faster bug fixes, and a smoother experience for everyone! 🚀
 
